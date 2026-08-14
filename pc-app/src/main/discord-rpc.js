@@ -107,7 +107,10 @@ class DiscordLink extends EventEmitter {
       const user = (this.client.user && this.client.user.username) || 'Discord';
       console.log(`[discord] connected as ${user}`);
       this.emit('status', { state: 'connected', user });
+      // Without an activity Discord displays nothing at all, so an idle
+      // presence goes up immediately; live vitals replace it when they flow.
       if (this.pendingActivity) this.flush();
+      else this.setIdle();
     });
 
     // discord-rpc emits 'disconnected' when the client goes away mid-session.
@@ -142,6 +145,19 @@ class DiscordLink extends EventEmitter {
     if (!this.client) return;
     try { this.client.destroy(); } catch (err) { /* already gone */ }
     this.client = null;
+  }
+
+  /** Queues the no-vitals presence (shown while no watch is streaming). */
+  setIdle() {
+    if (!this.client || this.suppressed) return;
+    this.pendingActivity = {
+      details: 'PulseNX',
+      state: 'Awaiting heart-rate link',
+      largeImageKey: 'heart',
+      largeImageText: 'PulseNX — made with Claude',
+      instance: false
+    };
+    this.scheduleFlush();
   }
 
   /** Queues a presence update built from the current templates. */

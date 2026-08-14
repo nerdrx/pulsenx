@@ -269,6 +269,9 @@ function goOffline(detail, source) {
     sendToRenderer('alarm', { type: 'highHr', active: false, sound: false });
   }
 
+  // Presence must not freeze at the last live BPM once the stream is gone.
+  if (discord && cfg.discord.enabled) discord.setIdle();
+
   sendToRenderer('link', {
     state: 'awaiting',
     source,
