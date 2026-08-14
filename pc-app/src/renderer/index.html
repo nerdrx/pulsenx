@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PulseNX</title>
+  <link rel="stylesheet" href="css/theme.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <script src="../../node_modules/chart.js/dist/chart.umd.js"></script>
+</head>
+<body>
+  <div class="alarm-flash" id="alarm-flash" aria-hidden="true"></div>
+
+  <div class="app-shell">
+
+    <!-- ===================== HEADER ===================== -->
+    <header class="app-header">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 512 512" class="brand-svg">
+            <defs>
+              <linearGradient id="nxHeart" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#9d3bff"/>
+                <stop offset="1" stop-color="#7700ff"/>
+              </linearGradient>
+            </defs>
+            <path fill="url(#nxHeart)" d="M256 434 C 130 340 76 280 76 202 C 76 140 124 96 182 96 C 217 96 243 112 256 136 C 269 112 295 96 330 96 C 388 96 436 140 436 202 C 436 280 382 340 256 434 Z"/>
+            <polyline class="brand-ecg" points="96,258 176,258 200,258 218,196 244,322 268,230 282,258 416,258"
+                      fill="none" stroke="#00e5ff" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+        <div class="brand-text">
+          <h1>Pulse<span class="accent">NX</span></h1>
+          <p>Vitals Stream Suite</p>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <div class="link-code-box" title="Enter this code on the phone app">
+          <span class="link-code-label">Link Code</span>
+          <strong class="link-code" id="link-code">------</strong>
+        </div>
+
+        <div class="status-pill is-offline" id="status-pill">
+          <span class="status-dot"></span>
+          <span class="status-text" id="status-text">Awaiting Link</span>
+          <span class="status-chips" id="status-chips" hidden>
+            <span class="chip" id="chip-battery">-- %</span>
+            <span class="chip" id="chip-rssi">-- dBm</span>
+          </span>
+        </div>
+
+        <button class="btn btn-outline btn-icon" id="btn-overlay-toggle" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ic"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          <span id="overlay-btn-label">Overlay</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- ===================== SIDEBAR ===================== -->
+    <aside class="app-sidebar">
+      <nav class="side-nav" id="side-nav">
+        <button class="nav-item active" data-view="dashboard" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="ic"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          <span>Dashboard</span>
+        </button>
+        <button class="nav-item" data-view="osc" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="ic"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1.4"/></svg>
+          <span>VRChat OSC</span>
+        </button>
+        <button class="nav-item" data-view="alarms" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="ic"><polygon points="12 3 2 21 22 21"/><line x1="12" y1="10" x2="12" y2="15"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+          <span>Alarms</span>
+        </button>
+        <button class="nav-item" data-view="breathing" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="ic"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5"/></svg>
+          <span>Breathing</span>
+        </button>
+        <button class="nav-item" data-view="history" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="ic"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+          <span>History</span>
+        </button>
+        <button class="nav-item" data-view="settings" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="ic"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .32 1.77l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.6 1.6 0 0 0-1.77-.32 1.6 1.6 0 0 0-1 1.47V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1.05-1.46 1.6 1.6 0 0 0-1.77.32l-.06.06A2 2 0 1 1 4.4 17l.06-.06a1.6 1.6 0 0 0 .32-1.77 1.6 1.6 0 0 0-1.47-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.46-1.05 1.6 1.6 0 0 0-.32-1.77l-.06-.06A2 2 0 1 1 7 4.4l.06.06a1.6 1.6 0 0 0 1.77.32H9a1.6 1.6 0 0 0 1-1.47V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.47 1.6 1.6 0 0 0 1.77-.32l.06-.06A2 2 0 1 1 19.6 7l-.06.06a1.6 1.6 0 0 0-.32 1.77V9a1.6 1.6 0 0 0 1.47 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>
+          <span>Settings</span>
+        </button>
+      </nav>
+
+      <div class="side-foot">
+        <span class="sig">PulseNX — made with Claude</span>
+        <span class="ver" id="app-version">v--</span>
+      </div>
+    </aside>
+
+    <!-- ===================== MAIN ===================== -->
+    <main class="app-main">
+
+      <!-- ================ DASHBOARD ================ -->
+      <section class="view active" id="view-dashboard">
+
+        <div class="metrics-grid">
+
+          <!-- LIVE HEART RATE -->
+          <article class="card hr-card">
+            <div class="card-head">
+              <span class="card-title">Live Heart Rate</span>
+              <span class="zone-badge zone-warmup" id="zone-badge">--</span>
+            </div>
+
+            <div class="hr-body">
+              <div class="heart-wrap" id="heart-wrap">
+                <svg class="heart-svg" id="svg-heart" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                </svg>
+              </div>
+              <div class="bpm-digits">
+                <span id="bpm-val">--</span>
+                <span class="unit">BPM</span>
+              </div>
+              <div class="hr-side">
+                <div class="mini-stat">
+                  <span class="mini-lbl">RR</span>
+                  <span class="mini-val" id="rr-val">--</span>
+                </div>
+                <div class="mini-stat">
+                  <span class="mini-lbl">Contact</span>
+                  <span class="mini-val" id="contact-val">--</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="ecg-wrap">
+              <canvas id="ecg-canvas"></canvas>
+            </div>
+          </article>
+
+          <!-- HRV -->
+          <article class="card metric-card">
+            <div class="card-head"><span class="card-title">HRV · rMSSD</span></div>
+            <div class="metric-val"><span id="hrv-val">--</span><span class="unit">ms</span></div>
+            <p class="metric-desc">Autonomic nervous balance</p>
+            <div class="meter">
+              <div class="meter-track"><div class="meter-fill meter-hrv" id="hrv-bar"></div></div>
+              <div class="meter-legend"><span>Low &lt;20</span><span>Normal 20–70</span><span>High &gt;70</span></div>
+            </div>
+          </article>
+
+          <!-- STRESS -->
+          <article class="card metric-card">
+            <div class="card-head"><span class="card-title">Stress Index</span></div>
+            <div class="metric-val"><span id="stress-val" class="cyan">--</span><span class="unit">%</span></div>
+            <p class="metric-desc" id="stress-desc">--</p>
+            <div class="meter">
+              <div class="meter-track"><div class="meter-fill meter-stress" id="stress-bar"></div></div>
+              <div class="meter-legend"><span>Relaxed</span><span>Normal / Tense</span><span>Stressed</span></div>
+            </div>
+          </article>
+
+          <!-- CALORIES -->
+          <article class="card metric-card">
+            <div class="card-head"><span class="card-title">Calories</span></div>
+            <div class="metric-val"><span id="kcal-val" class="violet">0.0</span><span class="unit">kcal</span></div>
+            <p class="metric-desc">Estimated live burn (Keytel)</p>
+            <div class="spark-row">
+              <span class="spark-chip">Zone <strong id="zone-inline">--</strong></span>
+            </div>
+          </article>
+        </div>
+
+        <!-- SUMMARY STATS -->
+        <section class="card stats-card">
+          <div class="card-head"><span class="card-title">Vitals Summary</span></div>
+          <div class="stats-grid">
+            <div class="stat-box"><span class="stat-lbl">Min BPM</span><span class="stat-val" id="stat-min-bpm">--</span></div>
+            <div class="stat-box hot"><span class="stat-lbl">Avg BPM</span><span class="stat-val" id="stat-avg-bpm">--</span></div>
+            <div class="stat-box"><span class="stat-lbl">Max BPM</span><span class="stat-val" id="stat-max-bpm">--</span></div>
+            <div class="stat-box"><span class="stat-lbl">Min Stress</span><span class="stat-val" id="stat-min-stress">--</span></div>
+            <div class="stat-box cool"><span class="stat-lbl">Avg Stress</span><span class="stat-val" id="stat-avg-stress">--</span></div>
+            <div class="stat-box"><span class="stat-lbl">Max Stress</span><span class="stat-val" id="stat-max-stress">--</span></div>
+          </div>
+        </section>
+
+        <!-- LIVE CHART -->
+        <section class="card chart-card">
+          <div class="card-head">
+            <span class="card-title">Real-Time Telemetry</span>
+            <div class="seg-group" id="chart-tabs">
+              <button class="seg active" data-series="bpm" type="button">BPM</button>
+              <button class="seg" data-series="stress" type="button">Stress</button>
+              <button class="seg" data-series="both" type="button">Both</button>
+            </div>
+          </div>
+          <div class="chart-box"><canvas id="live-chart"></canvas></div>
+          <div class="chart-legend">
+            <span><i class="dot dot-hr"></i> Heart Rate (BPM)</span>
+            <span><i class="dot dot-stress"></i> Stress Index (%)</span>
+          </div>
+        </section>
+
+        <div class="split-grid">
+          <!-- ZONE DISTRIBUTION -->
+          <section class="card">
+            <div class="card-head"><span class="card-title">HR Zone Distribution</span></div>
+            <div class="zone-track">
+              <div class="zone-seg seg-warmup" id="zone-bar-warmup" style="width:0%"></div>
+              <div class="zone-seg seg-fatburn" id="zone-bar-fatburn" style="width:0%"></div>
+              <div class="zone-seg seg-aerobic" id="zone-bar-aerobic" style="width:0%"></div>
+              <div class="zone-seg seg-anaerobic" id="zone-bar-anaerobic" style="width:0%"></div>
+              <div class="zone-seg seg-extreme" id="zone-bar-extreme" style="width:0%"></div>
+            </div>
+            <div class="zone-legend">
+              <div class="zl"><i class="sw sw-warmup"></i>Warm Up <strong id="lbl-pct-warm">0%</strong></div>
+              <div class="zl"><i class="sw sw-fatburn"></i>Fat Burn <strong id="lbl-pct-burn">0%</strong></div>
+              <div class="zl"><i class="sw sw-aerobic"></i>Aerobic <strong id="lbl-pct-aero">0%</strong></div>
+              <div class="zl"><i class="sw sw-anaerobic"></i>Anaerobic <strong id="lbl-pct-anar">0%</strong></div>
+              <div class="zl"><i class="sw sw-extreme"></i>Extreme <strong id="lbl-pct-extreme">0%</strong></div>
+            </div>
+          </section>
+
+          <!-- SESSION RECORDER -->
+          <section class="card recorder-card">
+            <div class="card-head"><span class="card-title">Session Recorder</span></div>
+            <div class="timer-row">
+              <span class="rec-dot" id="rec-indicator"></span>
+              <span class="timer" id="session-timer">00:00:00</span>
+            </div>
+            <div class="btn-row">
+              <button class="btn btn-primary" id="btn-record-start" type="button" disabled>
+                <svg viewBox="0 0 24 24" fill="currentColor" class="ic"><circle cx="12" cy="12" r="8"/></svg>
+                Start Recording
+              </button>
+              <button class="btn btn-danger hidden" id="btn-record-stop" type="button">
+                <svg viewBox="0 0 24 24" fill="currentColor" class="ic"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>
+                Stop Recording
+              </button>
+              <button class="btn btn-ghost" id="btn-export-csv" type="button" disabled>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ic"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Export CSV
+              </button>
+            </div>
+            <p class="hint" id="recorder-hint">Recording unlocks once a phone is linked. Export writes a CSV you can reload in History.</p>
+          </section>
+        </div>
+      </section>
+
+      <!-- ================ VRCHAT OSC ================ -->
+      <section class="view" id="view-osc">
+        <section class="card">
+          <div class="card-head">
+            <span class="card-title">VRChat OSC Output</span>
+            <label class="switch">
+              <input type="checkbox" id="osc-enabled">
+              <span class="track"></span>
+            </label>
+          </div>
+          <p class="hint">Streams the full avatar parameter set at 1 Hz to the local VRChat OSC port. Parameters are only broadcast while live vitals are flowing, so <code>isHRConnected</code> never lies.</p>
+
+          <div class="form-grid" id="osc-body">
+            <div class="field">
+              <label for="osc-host">OSC Host</label>
+              <input type="text" id="osc-host" spellcheck="false">
+            </div>
+            <div class="field">
+              <label for="osc-port">OSC Port</label>
+              <input type="number" id="osc-port" min="1024" max="65535">
+            </div>
+
+            <div class="field span-2 row-toggle">
+              <div>
+                <label for="osc-fullset">Full VRChat Parameter Set</label>
+                <p class="hint">All float/int/HRV/stress parameters (HRPercent, onesHR, Heartrate, HeartRateBPM …). Turn off to broadcast a single custom path instead.</p>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="osc-fullset">
+                <span class="track"></span>
+              </label>
+            </div>
+
+            <div class="field">
+              <label for="osc-preset">Path Preset</label>
+              <select id="osc-preset">
+                <option value="standard">Standard VRChat</option>
+                <option value="vrcosc">VRCOSC / HypeRate</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="osc-path">Custom Parameter Path</label>
+              <input type="text" id="osc-path" spellcheck="false">
+            </div>
+
+            <div class="field">
+              <label for="osc-min-hr">Normalize Min HR</label>
+              <input type="number" id="osc-min-hr" min="0" max="120">
+            </div>
+            <div class="field">
+              <label for="osc-max-hr">Normalize Max HR</label>
+              <input type="number" id="osc-max-hr" min="60" max="250">
+            </div>
+            <p class="hint span-2">Min/Max define how BPM maps onto the 0–1 <code>HRPercent</code> float (and −1..1 <code>FullHRPercent</code>).</p>
+
+            <div class="field span-2 row-toggle">
+              <div>
+                <label for="osc-beatpulse">Beat-Sync Pulse</label>
+                <p class="hint">Pulses <code>HeartBeatPulse / HeartBeat / isHRBeat / HBListen</code> true→false at your real beat rhythm (250–2000 ms).</p>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="osc-beatpulse">
+                <span class="track"></span>
+              </label>
+            </div>
+
+            <div class="field span-2 row-toggle">
+              <div>
+                <label for="osc-chatbox">Chatbox Text</label>
+                <p class="hint">Posts to <code>/chatbox/input</code> every 3 s above your avatar's head.</p>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="osc-chatbox">
+                <span class="track"></span>
+              </label>
+            </div>
+
+            <div class="field span-2">
+              <label for="osc-chatbox-format">Chatbox Format</label>
+              <input type="text" id="osc-chatbox-format">
+              <p class="hint">Tags: <code>{bpm}</code> <code>{hrv}</code> <code>{stress}</code></p>
+            </div>
+          </div>
+        </section>
+
+        <div class="split-grid">
+          <section class="card">
+            <div class="card-head"><span class="card-title">OBS Browser Source</span></div>
+            <p class="hint">Add a Browser Source in OBS pointing at this local URL for a transparent stream widget.</p>
+            <div class="input-with-btn">
+              <input type="text" id="obs-url" readonly value="http://localhost:9005">
+              <button class="btn btn-ghost" id="btn-copy-obs" type="button">Copy</button>
+            </div>
+          </section>
+
+          <section class="card">
+            <div class="card-head">
+              <span class="card-title">Discord Rich Presence</span>
+              <label class="switch">
+                <input type="checkbox" id="discord-enabled">
+                <span class="track"></span>
+              </label>
+            </div>
+            <div class="field">
+              <label for="discord-details">Details Line</label>
+              <input type="text" id="discord-details">
+            </div>
+            <div class="field">
+              <label for="discord-state">State Line</label>
+              <input type="text" id="discord-state">
+            </div>
+            <p class="hint">Tags: <code>{bpm}</code> <code>{hrv}</code> <code>{zone}</code> <code>{stress}</code> <code>{stresstext}</code></p>
+            <div class="info-row">
+              <span class="info-lbl">RPC Status</span>
+              <span class="info-val" id="discord-status">Off</span>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <!-- ================ ALARMS ================ -->
+      <section class="view" id="view-alarms">
+        <section class="card">
+          <div class="card-head">
+            <span class="card-title">High Heart Rate Tone</span>
+            <label class="switch">
+              <input type="checkbox" id="alarm-high-tone">
+              <span class="track"></span>
+            </label>
+          </div>
+          <p class="hint">Plays a Web Audio warning tone whenever your heart rate climbs above 165 BPM.</p>
+          <button class="btn btn-outline" id="btn-test-audio" type="button">Test Audio</button>
+        </section>
+
+        <section class="card">
+          <div class="card-head"><span class="card-title">Threshold Alarm</span></div>
+          <p class="hint">Raises an alert when heart rate stays above the limit for longer than the duration filter.</p>
+          <div class="form-grid">
+            <div class="field">
+              <label for="alarm-bpm-limit">Trigger Limit (BPM)</label>
+              <input type="number" id="alarm-bpm-limit" min="60" max="220">
+            </div>
+            <div class="field">
+              <label for="alarm-duration">Duration Filter (s)</label>
+              <input type="number" id="alarm-duration" min="1" max="60">
+            </div>
+
+            <div class="field span-2 row-toggle">
+              <div>
+                <label for="alarm-audio">Warning Beeper</label>
+                <p class="hint">Repeating Web Audio beep while the threshold is exceeded.</p>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="alarm-audio">
+                <span class="track"></span>
+              </label>
+            </div>
+
+            <div class="field span-2 row-toggle">
+              <div>
+                <label for="alarm-osc-flag">OSC Warning Flag</label>
+                <p class="hint">Sends <code>/avatar/parameters/HeartRateWarning</code> for avatar shaders.</p>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="alarm-osc-flag">
+                <span class="track"></span>
+              </label>
+            </div>
+          </div>
+          <div class="info-row">
+            <span class="info-lbl">Alarm State</span>
+            <span class="info-val" id="alarm-state">Idle</span>
+          </div>
+        </section>
+      </section>
+
+      <!-- ================ BREATHING ================ -->
+      <section class="view" id="view-breathing">
+        <section class="card pacer-card">
+          <div class="card-head">
+            <span class="card-title">Coherent Breathing Pacer</span>
+            <span class="coherence-read">Coherence <strong id="lbl-flow-coherence">--%</strong></span>
+          </div>
+
+          <div class="pacer-stage">
+            <div class="pacer-halo" id="pacer-halo"></div>
+            <div class="pacer-circle" id="breathing-circle"></div>
+            <div class="pacer-core"></div>
+            <span class="pacer-label" id="lbl-breathing-pacer">INHALE (5s)</span>
+          </div>
+
+          <div class="meter pacer-meter">
+            <div class="meter-track"><div class="meter-fill meter-flow" id="coherence-bar"></div></div>
+            <div class="meter-legend"><span>Drifting</span><span>Settling</span><span>Coherent</span></div>
+          </div>
+
+          <div class="row-toggle card-inset">
+            <div>
+              <label for="pacer-sound">Meditation Chimes</label>
+              <p class="hint">Soft sine chimes mark each inhale and exhale.</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="pacer-sound">
+              <span class="track"></span>
+            </label>
+          </div>
+
+          <p class="hint">6 breaths per minute — 5 s in, 5 s out. Coherence rises when your heart rate climbs on the inhale and falls on the exhale.</p>
+        </section>
+      </section>
+
+      <!-- ================ HISTORY ================ -->
+      <section class="view" id="view-history">
+        <section class="card">
+          <div class="card-head"><span class="card-title">Load Session CSV</span></div>
+          <p class="hint">Pick a CSV exported by the Session Recorder to review its statistics and replay the timeline.</p>
+          <div class="btn-row">
+            <input type="file" id="history-file" accept=".csv,text/csv" class="hidden">
+            <button class="btn btn-primary" id="btn-pick-csv" type="button">Select CSV File</button>
+            <span class="file-name" id="history-filename">No file loaded</span>
+          </div>
+        </section>
+
+        <section class="card stats-card hidden" id="history-stats">
+          <div class="card-head"><span class="card-title">Session Summary</span></div>
+          <div class="stats-grid">
+            <div class="stat-box"><span class="stat-lbl">Min HR</span><span class="stat-val" id="hist-hr-min">--</span></div>
+            <div class="stat-box hot"><span class="stat-lbl">Avg HR</span><span class="stat-val" id="hist-hr-avg">--</span></div>
+            <div class="stat-box"><span class="stat-lbl">Max HR</span><span class="stat-val" id="hist-hr-max">--</span></div>
+            <div class="stat-box cool"><span class="stat-lbl">Avg Stress</span><span class="stat-val" id="hist-stress-avg">--</span></div>
+            <div class="stat-box"><span class="stat-lbl">Duration</span><span class="stat-val" id="hist-duration">--</span></div>
+          </div>
+        </section>
+
+        <section class="card chart-card">
+          <div class="card-head">
+            <span class="card-title">Historical Trace</span>
+            <div class="chart-legend inline">
+              <span><i class="dot dot-hr"></i> HR (left)</span>
+              <span><i class="dot dot-violet"></i> Stress (right)</span>
+            </div>
+          </div>
+          <div class="chart-box"><canvas id="history-chart"></canvas></div>
+        </section>
+      </section>
+
+      <!-- ================ SETTINGS ================ -->
+      <section class="view" id="view-settings">
+        <section class="card">
+          <div class="card-head"><span class="card-title">Biometric Profile</span></div>
+          <div class="form-grid">
+            <div class="field">
+              <label for="profile-age">Age (years)</label>
+              <input type="number" id="profile-age" min="10" max="100">
+            </div>
+            <div class="field">
+              <label for="profile-gender">Gender</label>
+              <select id="profile-gender">
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="profile-weight">Weight (kg)</label>
+              <input type="number" id="profile-weight" min="30" max="250">
+            </div>
+            <div class="field">
+              <label for="profile-maxhr">Max HR (BPM)</label>
+              <input type="number" id="profile-maxhr" min="120" max="220">
+            </div>
+            <div class="field span-2">
+              <div class="label-row">
+                <label for="stress-offset">Stress Baseline Offset</label>
+                <span class="value-tag" id="lbl-stress-offset">+0</span>
+              </div>
+              <input type="range" id="stress-offset" min="-50" max="50" step="1" class="slider">
+              <p class="hint">Shift the stress index if it reads consistently too high or too low for you.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-head"><span class="card-title">Overlay Content</span></div>
+          <div class="row-toggle card-inset">
+            <div>
+              <label for="overlay-show-bpm">Show BPM</label>
+              <p class="hint">Display the live BPM group on the floating overlay.</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="overlay-show-bpm">
+              <span class="track"></span>
+            </label>
+          </div>
+          <div class="row-toggle card-inset">
+            <div>
+              <label for="overlay-show-stress">Show Stress</label>
+              <p class="hint">Display the stress index group on the floating overlay.</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="overlay-show-stress">
+              <span class="track"></span>
+            </label>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-head"><span class="card-title">Endpoints</span></div>
+          <div class="info-row"><span class="info-lbl">Link Code</span><span class="info-val cyan" id="info-link-code">------</span></div>
+          <div class="info-row"><span class="info-lbl">LAN Endpoint</span><span class="info-val" id="info-lan">Resolving…</span></div>
+          <div class="info-row"><span class="info-lbl">OBS Widget</span><span class="info-val" id="info-obs">--</span></div>
+          <div class="info-row"><span class="info-lbl">Discovery Beacon</span><span class="info-val">UDP :9001</span></div>
+        </section>
+
+        <section class="card about-card">
+          <div class="card-head"><span class="card-title">About</span></div>
+          <div class="about-row">
+            <span class="brand-mark small" aria-hidden="true">
+              <svg viewBox="0 0 512 512" class="brand-svg">
+                <path fill="#7700ff" d="M256 434 C 130 340 76 280 76 202 C 76 140 124 96 182 96 C 217 96 243 112 256 136 C 269 112 295 96 330 96 C 388 96 436 140 436 202 C 436 280 382 340 256 434 Z"/>
+                <polyline points="96,258 176,258 200,258 218,196 244,322 268,230 282,258 416,258" fill="none" stroke="#00e5ff" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+            <div>
+              <h3>PulseNX <span class="ver-inline" id="about-version">v--</span></h3>
+              <p class="hint">Real-time heart rate, HRV and stress streaming to VRChat, OBS, Discord and desktop overlays.</p>
+              <p class="sig-line">PulseNX — made with Claude</p>
+            </div>
+          </div>
+        </section>
+      </section>
+
+    </main>
+  </div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

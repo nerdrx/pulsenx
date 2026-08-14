@@ -1,0 +1,149 @@
+/* PulseNX — theme tokens, reset, typography, keyframes */
+
+:root {
+  /* Space palette */
+  --bg-0: #0a0512;
+  --bg-1: #12081f;
+  --bg-2: #180c29;
+  --panel: rgba(24, 12, 41, 0.62);
+  --panel-solid: #170b28;
+  --stroke: rgba(160, 110, 255, 0.16);
+  --stroke-strong: rgba(160, 110, 255, 0.34);
+
+  /* Brand */
+  --violet: #7700ff;
+  --violet-lt: #9d3bff;
+  --violet-soft: rgba(119, 0, 255, 0.18);
+  --cyan: #00e5ff;
+  --cyan-soft: rgba(0, 229, 255, 0.16);
+  --red: #ff2d55;
+  --red-soft: rgba(255, 45, 85, 0.16);
+  --green: #2fe08a;
+  --amber: #ffb020;
+
+  /* Text */
+  --txt: #f2ecff;
+  --txt-2: #b8a8d6;
+  --txt-3: #7c6b9c;
+
+  /* Shape */
+  --r-lg: 18px;
+  --r-md: 13px;
+  --r-sm: 9px;
+  --shadow: 0 18px 46px rgba(0, 0, 0, 0.55);
+  --glow-violet: 0 0 22px rgba(119, 0, 255, 0.45);
+  --glow-cyan: 0 0 18px rgba(0, 229, 255, 0.35);
+
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+          "Noto Sans", "Liberation Sans", sans-serif;
+  --mono: ui-monospace, "Cascadia Mono", "Segoe UI Mono", "DejaVu Sans Mono",
+          "Liberation Mono", Menlo, Consolas, monospace;
+
+  --beat-duration: 1s;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body { height: 100%; }
+
+body {
+  font-family: var(--font);
+  color: var(--txt);
+  background:
+    radial-gradient(1100px 620px at 12% -8%, rgba(119, 0, 255, 0.20), transparent 62%),
+    radial-gradient(900px 520px at 108% 4%, rgba(0, 229, 255, 0.10), transparent 60%),
+    radial-gradient(700px 700px at 60% 120%, rgba(119, 0, 255, 0.10), transparent 65%),
+    linear-gradient(160deg, var(--bg-1) 0%, var(--bg-0) 55%, #07030d 100%);
+  background-attachment: fixed;
+  overflow: hidden;
+  font-size: 15px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* faint starfield grid */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.022) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.022) 1px, transparent 1px);
+  background-size: 46px 46px;
+  mask-image: radial-gradient(circle at 50% 30%, #000 0%, transparent 78%);
+  -webkit-mask-image: radial-gradient(circle at 50% 30%, #000 0%, transparent 78%);
+  z-index: 0;
+}
+
+h1, h2, h3 { font-weight: 800; letter-spacing: -0.02em; }
+
+code {
+  font-family: var(--mono);
+  font-size: 0.86em;
+  color: var(--cyan);
+  background: rgba(0, 229, 255, 0.08);
+  border-radius: 5px;
+  padding: 1px 5px;
+}
+
+.hidden { display: none !important; }
+[hidden] { display: none !important; }
+.cyan { color: var(--cyan); }
+.violet { color: var(--violet-lt); }
+.red { color: var(--red); }
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(119, 0, 255, 0.55), rgba(119, 0, 255, 0.25));
+  border-radius: 99px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover { background-color: rgba(157, 59, 255, 0.8); }
+
+::selection { background: rgba(119, 0, 255, 0.45); color: #fff; }
+
+:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 2px;
+}
+
+/* ---------------- keyframes ---------------- */
+@keyframes beat {
+  0%, 100% { transform: scale(1); }
+  14%      { transform: scale(1.26); }
+  28%      { transform: scale(1.0); }
+  42%      { transform: scale(1.12); }
+  60%      { transform: scale(1.0); }
+}
+
+@keyframes recPulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(255, 45, 85, 0.55); }
+  70%      { opacity: 0.55; box-shadow: 0 0 0 9px rgba(255, 45, 85, 0); }
+}
+
+@keyframes statusPing {
+  0%   { transform: scale(1); opacity: 0.8; }
+  70%  { transform: scale(2.6); opacity: 0; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+
+@keyframes alarmFlash {
+  0%, 100% { opacity: 0; }
+  50%      { opacity: 1; }
+}
+
+@keyframes haloSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.001ms !important; transition-duration: 0.06s !important; }
+}

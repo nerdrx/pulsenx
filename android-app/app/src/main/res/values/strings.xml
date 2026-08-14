@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">PulseNX Bridge</string>
+    <string name="app_subtitle">made with Claude</string>
+
+    <string name="label_live_hr">LIVE HEART RATE</string>
+    <string name="label_bpm">BPM</string>
+    <string name="label_link">LINK</string>
+    <string name="label_pc">PC</string>
+    <string name="label_watch">Watch</string>
+
+    <string name="hint_target">Link code (A3F9K2) or PC IP</string>
+    <string name="hint_helper">A code links through the cloud, an IP links over your LAN.</string>
+
+    <string name="action_link_pc">Link PC</string>
+    <string name="action_unlink_pc">Disconnect</string>
+    <string name="action_scan_watch">Scan &amp; Link Watch</string>
+    <string name="action_stop_scan">Stop Scanning</string>
+    <string name="action_watch_linked">Watch Linked</string>
+
+    <string name="status_pc_offline">Not linked</string>
+    <string name="status_watch_offline">Offline</string>
+    <string name="status_watch_scanning">Scanning…</string>
+    <string name="status_watch_live">Streaming</string>
+
+    <string name="hint_unpair">Long-press Scan to unpair the saved watch</string>
+</resources>

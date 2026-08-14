@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="nx_bg">#0a0512</color>
+    <color name="nx_bg_deep">#12081f</color>
+    <color name="nx_card">#16102a</color>
+    <color name="nx_card_edge">#2a1c4a</color>
+    <color name="nx_field">#0d0719</color>
+
+    <color name="nx_accent">#7700FF</color>
+    <color name="nx_accent_soft">#9d3bff</color>
+    <color name="nx_cyan">#00e5ff</color>
+    <color name="nx_heart">#ff2d55</color>
+
+    <color name="nx_text">#f2eaff</color>
+    <color name="nx_muted">#9b8fb5</color>
+    <color name="nx_dim">#6b5f85</color>
+</resources>

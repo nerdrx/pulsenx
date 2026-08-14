@@ -1,0 +1,59 @@
+{
+  "name": "pulsenx-pc",
+  "version": "1.0.0",
+  "description": "PulseNX PC — vitals stream suite (dashboard, VRChat OSC, overlays, OBS)",
+  "main": "src/main/main.js",
+  "author": "PulseNX",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test test/state.test.js",
+    "test:unit": "node --test test/state.test.js test/csv-settings.test.js",
+    "test:e2e": "node test/e2e.js",
+    "dist:linux": "electron-builder --linux AppImage",
+    "dist:win": "electron-builder --win portable"
+  },
+  "dependencies": {
+    "chart.js": "^4.5.1",
+    "discord-rpc": "^4.0.1",
+    "mqtt": "^5.15.2",
+    "node-osc": "^11.6.0",
+    "ws": "^8.21.0"
+  },
+  "devDependencies": {
+    "electron": "31.7.7",
+    "electron-builder": "^26.0.12"
+  },
+  "allowScripts": {
+    "electron": true
+  },
+  "build": {
+    "appId": "com.pulsenx.app",
+    "productName": "PulseNX",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "package.json",
+      "!test/**/*",
+      "!dist/**/*"
+    ],
+    "linux": {
+      "target": "AppImage",
+      "icon": "assets/icon.png",
+      "category": "Utility"
+    },
+    "appImage": {
+      "artifactName": "PulseNX.AppImage"
+    },
+    "win": {
+      "target": "portable",
+      "icon": "assets/icon.ico"
+    },
+    "portable": {
+      "artifactName": "PulseNX.exe"
+    }
+  }
+}
