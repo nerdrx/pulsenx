@@ -54,8 +54,9 @@ npm run dist:win   # -> dist/PulseNX.exe (needs wine on Linux)
 ### Android bridge APK
 ```bash
 cd android-app
-./gradlew assembleRelease   # -> pulsenx_bridge.apk (repo root copy)
+./gradlew assembleRelease   # -> app/build/outputs/apk/release/app-release.apk
 ```
+Prebuilt APKs are attached to each [release](https://github.com/nerdrx/pulsenx/releases).
 Requires a JDK 17+ and an Android SDK with platform 34; `local.properties` points at the SDK.
 
 ## Setup
@@ -63,5 +64,5 @@ Requires a JDK 17+ and an Android SDK with platform 34; `local.properties` point
 1. **Watch**: enable HR broadcasting (Huawei: Settings → HR Data Broadcasts; Galaxy Watch:
    Samsung Health → Share HR with gym equipment; Pixel: Fitbit Exercise → Bluetooth HR + workout).
 2. **PC**: launch PulseNX, note the 6-character **link code** in the header.
-3. **Phone**: install `pulsenx_bridge.apk`, enter the link code (cloud) or PC IP (LAN — usually
+3. **Phone**: install the PulseNX Bridge APK, enter the link code (cloud) or PC IP (LAN — usually
    auto-discovered), tap **Link PC**, then **Scan & Link Watch**. Vitals start streaming.
