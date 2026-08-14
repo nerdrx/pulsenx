@@ -2,8 +2,18 @@ node_modules/
 dist/
 build/
 .gradle/
-*.keystore
-local.properties
-keystore.properties
-*.jks
 .kotlin/
+
+# Local machine config
+local.properties
+
+# Signing material and credentials — never commit these
+*.keystore
+*.jks
+*.p12
+*.pfx
+keystore.properties
+signing.properties
+.env
+.env.*
+*.pem
