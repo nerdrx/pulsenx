@@ -175,4 +175,5 @@ Threshold alarm owns: `HeartRateWarning` (bool).
 - `android-app`: gradle 8.13 (cached), AGP 8.x compatible with it, JDK 21 at
   `/run/media/nerdrx/Lex/claude/tools/jdk-21.0.12+8`, SDK at
   `/run/media/nerdrx/Lex/claude/tools/android-sdk` (build-tools 34/35, platform android-34).
-  Release APK signed with repo-local generated keystore → `pulsenx_bridge.apk`.
+  Release APK signed with repo-local generated keystore →
+  `app/build/outputs/apk/release/app-release.apk`, distributed as a GitHub release asset.
