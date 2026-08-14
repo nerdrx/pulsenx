@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "PulseNX PC — vitals stream suite (dashboard, VRChat OSC, overlays, OBS)",
   "main": "src/main/main.js",
+  "desktopName": "pulsenx.desktop",
   "author": "PulseNX",
   "license": "MIT",
   "scripts": {
@@ -44,7 +45,7 @@
       "target": "AppImage",
       "icon": "assets/icon.png",
       "category": "Utility",
-      "desktopName": "pulsenx",
+      "executableName": "pulsenx",
       "syncDesktopName": true
     },
     "appImage": {
