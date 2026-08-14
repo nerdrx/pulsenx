@@ -43,7 +43,9 @@
     "linux": {
       "target": "AppImage",
       "icon": "assets/icon.png",
-      "category": "Utility"
+      "category": "Utility",
+      "desktopName": "pulsenx",
+      "syncDesktopName": true
     },
     "appImage": {
       "artifactName": "PulseNX.AppImage"
