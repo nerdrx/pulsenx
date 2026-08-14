@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#12081f"/>
+      <stop offset="1" stop-color="#0a0512"/>
+    </linearGradient>
+    <linearGradient id="heart" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#9d3bff"/>
+      <stop offset="1" stop-color="#7700ff"/>
+    </linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="14" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <rect x="6" y="6" width="500" height="500" rx="106" fill="none"
+        stroke="#7700ff" stroke-opacity="0.35" stroke-width="4"/>
+
+  <!-- heart -->
+  <path filter="url(#glow)" fill="url(#heart)" d="M256 434
+    C 130 340 76 280 76 202
+    C 76 140 124 96 182 96
+    C 217 96 243 112 256 136
+    C 269 112 295 96 330 96
+    C 388 96 436 140 436 202
+    C 436 280 382 340 256 434 Z"/>
+
+  <!-- ECG pulse line cutting through -->
+  <polyline points="96,258 176,258 200,258 218,196 244,322 268,230 282,258 416,258"
+            fill="none" stroke="#00e5ff" stroke-width="18"
+            stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)"/>
+
+  <!-- NX mark -->
+  <text x="256" y="368" text-anchor="middle"
+        font-family="Arial Black, Arial, sans-serif" font-size="78" font-weight="900"
+        fill="#ffffff" letter-spacing="4">NX</text>
+</svg>
