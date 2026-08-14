@@ -1,6 +1,6 @@
 {
   "name": "pulsenx-pc",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "PulseNX PC — vitals stream suite (dashboard, VRChat OSC, overlays, OBS)",
   "main": "src/main/main.js",
   "desktopName": "pulsenx.desktop",
