@@ -32,7 +32,8 @@ const DEFAULTS = Object.freeze({
   discord: {
     enabled: false,
     details: '❤️ {bpm} BPM • {zone}',
-    state: 'Stress: {stresstext} ({stress}%)'
+    state: 'Stress: {stresstext} ({stress}%)',
+    clientId: ''
   },
   alarms: {
     highHrTone: true,

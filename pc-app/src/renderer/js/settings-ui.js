@@ -47,6 +47,7 @@ const BINDINGS = [
   { id: 'discord-enabled',    path: 'discord.enabled',    kind: 'bool' },
   { id: 'discord-details',    path: 'discord.details',    kind: 'text' },
   { id: 'discord-state',      path: 'discord.state',      kind: 'text' },
+  { id: 'discord-client-id',  path: 'discord.clientId',   kind: 'text' },
 
   { id: 'alarm-high-tone',    path: 'alarms.highHrTone',  kind: 'bool' },
   { id: 'alarm-bpm-limit',    path: 'alarms.bpmLimit',    kind: 'number' },

@@ -74,6 +74,18 @@ class DiscordLink extends EventEmitter {
       details: (templates && templates.details) || '',
       state: (templates && templates.state) || ''
     };
+
+    // Optional user-supplied application ID (Settings → Discord). Changing it
+    // while connected forces a fresh login under the new application.
+    const nextId = String((templates && templates.clientId) || CLIENT_ID).trim() || CLIENT_ID;
+    if (nextId !== this.clientId) {
+      const wasActive = !!this.client;
+      this.clientId = nextId;
+      if (wasActive) {
+        this.destroyClient();
+        this.enable();
+      }
+    }
   }
 
   enable() {
