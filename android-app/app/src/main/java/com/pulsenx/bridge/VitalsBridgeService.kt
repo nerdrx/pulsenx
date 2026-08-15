@@ -88,6 +88,7 @@ class VitalsBridgeService : Service(), PcLink.Listener {
         const val ACTION_CONNECT_DEVICE = "com.pulsenx.bridge.CONNECT_DEVICE"
         const val ACTION_SET_SOURCE = "com.pulsenx.bridge.SET_SOURCE"
         const val ACTION_REFRESH_HEALTH = "com.pulsenx.bridge.REFRESH_HEALTH"
+        const val ACTION_MIRROR_NOW = "com.pulsenx.bridge.MIRROR_NOW"
 
         const val EXTRA_PC_TARGET = "PC_TARGET"
         const val EXTRA_DEVICE_MAC = "DEVICE_MAC"
@@ -106,6 +107,13 @@ class VitalsBridgeService : Service(), PcLink.Listener {
         /** Health Connect HR write-back batching. */
         private const val HC_FLUSH_MS = 300_000L
         private const val HC_FLUSH_SAMPLES = 300
+
+        /**
+         * Fast-path cadence for the Google Fit mirror while this foreground service is
+         * alive. WorkManager's 15-minute periodic job stays enqueued as the backstop
+         * for when it is not; HealthMirror's mutex serialises the two drivers.
+         */
+        private const val MIRROR_TICK_MS = 300_000L
 
         private const val DISCOVERY_PORT = 9001
 
@@ -191,6 +199,9 @@ class VitalsBridgeService : Service(), PcLink.Listener {
         // HC_WRITE_ENABLED switch working without a round-trip to the service.
         handler.postDelayed(hcFlushTick, HC_FLUSH_MS)
 
+        // Likewise always armed; HealthMirror.sync() no-ops while the mirror is off.
+        handler.postDelayed(mirrorTick, MIRROR_TICK_MS)
+
         // Seed the health card even before the PC link comes up.
         refreshHealthSummary(send = false)
     }
@@ -224,6 +235,14 @@ class VitalsBridgeService : Service(), PcLink.Listener {
                 applySource(intent.getStringExtra(EXTRA_HR_SOURCE).orEmpty())
 
             ACTION_REFRESH_HEALTH -> refreshHealthSummary(send = false)
+
+            ACTION_MIRROR_NOW -> serviceScope.launch {
+                try {
+                    HealthMirror.sync(applicationContext)
+                } catch (e: Exception) {
+                    Log.w(TAG, "on-demand mirror failed: ${e.message}")
+                }
+            }
         }
         return START_STICKY
     }
@@ -517,6 +536,20 @@ class VitalsBridgeService : Service(), PcLink.Listener {
         override fun run() {
             flushHcWrites()
             handler.postDelayed(this, HC_FLUSH_MS)
+        }
+    }
+
+    /** Service-driven mirror pass — the sub-15-minute path WorkManager cannot offer. */
+    private val mirrorTick = object : Runnable {
+        override fun run() {
+            serviceScope.launch {
+                try {
+                    HealthMirror.sync(applicationContext)
+                } catch (e: Exception) {
+                    Log.w(TAG, "mirror tick failed: ${e.message}")
+                }
+            }
+            handler.postDelayed(this, MIRROR_TICK_MS)
         }
     }
 

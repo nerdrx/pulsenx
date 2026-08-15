@@ -221,6 +221,9 @@ class MainActivity : android.app.Activity() {
             prefs().edit().putBoolean(VitalsBridgeService.KEY_FIT_MIRROR, checked).apply()
             if (checked) {
                 HealthSyncWorker.enqueue(this)
+                // Kick the first (backfill) pass right away via the service instead of
+                // waiting out WorkManager's first 15-minute period.
+                sendServiceAction(VitalsBridgeService.ACTION_MIRROR_NOW)
                 toast(getString(R.string.health_toast_mirror_on))
                 if (!hcGranted.containsAll(HealthConnectHub.ALL_PERMISSIONS)) {
                     requestHealthPermissions(HealthConnectHub.ALL_PERMISSIONS)
