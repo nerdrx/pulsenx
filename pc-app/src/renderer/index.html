@@ -183,6 +183,30 @@
           </div>
         </section>
 
+        <!-- DAILY HEALTH (Health Connect summary from the phone) -->
+        <section class="card stats-card health-card">
+          <div class="card-head">
+            <span class="card-title">Daily Health</span>
+            <span class="health-meta">
+              <span class="chip health-source" id="health-source">via Health Connect</span>
+              <span class="health-stamp" id="health-updated">updated --:--</span>
+            </span>
+          </div>
+          <div class="health-grid">
+            <div class="stat-box"><span class="stat-lbl">Steps</span><span class="stat-val violet" id="health-steps">--</span></div>
+            <div class="stat-box"><span class="stat-lbl">Distance (km)</span><span class="stat-val" id="health-distance">--</span></div>
+            <div class="stat-box"><span class="stat-lbl">Active kcal</span><span class="stat-val violet" id="health-active-kcal">--</span></div>
+            <div class="stat-box"><span class="stat-lbl">Total kcal</span><span class="stat-val" id="health-total-kcal">--</span></div>
+            <div class="stat-box cool"><span class="stat-lbl">Sleep</span><span class="stat-val" id="health-sleep">--</span></div>
+            <div class="stat-box hot"><span class="stat-lbl">Resting HR</span><span class="stat-val" id="health-resting-bpm">--</span></div>
+            <div class="stat-box"><span class="stat-lbl">Today Min BPM</span><span class="stat-val" id="health-min-bpm">--</span></div>
+            <div class="stat-box hot"><span class="stat-lbl">Today Avg BPM</span><span class="stat-val" id="health-avg-bpm">--</span></div>
+            <div class="stat-box"><span class="stat-lbl">Today Max BPM</span><span class="stat-val" id="health-max-bpm">--</span></div>
+            <div class="stat-box cool"><span class="stat-lbl">SpO2 %</span><span class="stat-val" id="health-spo2">--</span></div>
+          </div>
+          <p class="hint health-hint">Today's summary read from the phone's Health Connect data — pushed on link-up and every 5 minutes. Unknown values stay blank rather than guessing.</p>
+        </section>
+
         <!-- LIVE CHART -->
         <section class="card chart-card">
           <div class="card-head">

@@ -1,14 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.PulseNXBridge" parent="android:Theme.DeviceDefault.NoActionBar">
+
+    <!--
+      Edge-to-edge on API 26 without any Kotlin: the translucent window flags make
+      the window lay out behind the system bars, and the ScrollView in
+      activity_main.xml carries fitsSystemWindows so content still clears them.
+      Bar colours stay transparent so the aurora runs the full height of the screen.
+    -->
+    <style name="Base.Theme.PulseNXBridge" parent="android:Theme.DeviceDefault.NoActionBar">
         <item name="android:colorPrimary">@color/nx_accent</item>
         <item name="android:colorAccent">@color/nx_accent</item>
         <item name="android:colorSecondary">@color/nx_cyan</item>
-        <item name="android:windowBackground">@color/nx_bg</item>
-        <item name="android:statusBarColor">@color/nx_bg</item>
-        <item name="android:navigationBarColor">@color/nx_bg</item>
+
+        <item name="android:windowBackground">@color/nx_void</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:windowTranslucentStatus">true</item>
+        <item name="android:windowTranslucentNavigation">true</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <!-- Dark surface: keep the system icons light. -->
+        <item name="android:windowLightStatusBar">false</item>
+
         <item name="android:textColorPrimary">@color/nx_text</item>
         <item name="android:textColorSecondary">@color/nx_muted</item>
         <item name="android:textColorHint">@color/nx_dim</item>
+        <item name="android:colorControlActivated">@color/nx_accent_soft</item>
+        <item name="android:colorControlHighlight">@color/glass_ripple</item>
     </style>
+
+    <style name="Theme.PulseNXBridge" parent="Base.Theme.PulseNXBridge" />
 </resources>

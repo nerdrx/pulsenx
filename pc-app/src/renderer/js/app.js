@@ -6,6 +6,7 @@ import { api, on, hasBridge } from './ipc.js';
 import { store } from './store.js';
 import { initSettingsUi, applyDiscord } from './settings-ui.js';
 import { initDashboard, applyVitals, applyLink } from './dashboard.js';
+import { initHealth, applyHealth } from './health.js';
 import { initBreathing, applyBreath, applyCoherence } from './breathing.js';
 import { initAlarms, applyAlarm } from './alarms.js';
 import { initHistory } from './history.js';
@@ -64,8 +65,10 @@ function applyLinkState(payload) {
   }
 
   const source = payload && payload.source ? ` · ${String(payload.source).toUpperCase()}` : '';
+  // Vitals read out of Health Connect rather than the watch BLE profile say so.
+  const via = payload && payload.src === 'health' ? ' · HEALTH' : '';
   const label = state === 'connected'
-    ? `Phone Linked${source}`
+    ? `Phone Linked${source}${via}`
     : state === 'awaiting'
       ? 'Awaiting Link'
       : (payload && payload.detail) || 'Offline';
@@ -104,6 +107,7 @@ async function boot() {
   initNav();
   initOverlayButton();
   initDashboard();
+  initHealth();
   initBreathing();
   initAlarms();
   initHistory();
@@ -119,6 +123,7 @@ async function boot() {
       if (payload.breathPhase) applyBreath({ phase: payload.breathPhase });
     }
   });
+  on('health', applyHealth);
   on('link', applyLinkState);
   on('overlay', (payload) => setOverlayState(payload && payload.active));
   on('alarm', applyAlarm);

@@ -6,6 +6,8 @@ parameters. It is the NX-branded successor to PulseLink Bridge — same feature 
 
 *PulseNX — made with Claude.*
 
+![PulseNX dashboard — live vitals and the Daily Health card](branding/screenshots/daily-health-dashboard.png)
+
 ## How it flows
 
 ```
@@ -28,10 +30,16 @@ Watch (BLE HR broadcast) ──▶ Phone (PulseNX Bridge, foreground service)
   HRtoVRChat_OSC + VRCOSC compatible), true-frequency beat pulse, chatbox streaming, HR warning flag.
 - **Dashboard**: live BPM/HRV (rMSSD), stress index, training zones + distribution, min/max/avg,
   calories, live timeline chart, session recorder with CSV export and history review.
+- **Daily Health card**: your day so far — steps, distance, active/total calories, sleep, resting
+  HR, today's min/avg/max BPM and SpO2 — read on the phone from **Huawei Health via Health
+  Connect** and pushed to the PC every 5 minutes. Unknown values stay blank instead of guessing.
 - **Overlays**: frameless always-on-top desktop widget + OBS browser source (`http://localhost:9005`).
 - **Breathing pacer**: 6 breaths/min resonance guide with chimes and coherence flow score.
 - **Alarms**: high-HR tone and custom threshold alarms (audio + OSC).
 - **Discord Rich Presence** with live vitals templates.
+- **Phone app**: heart rate from the watch over BLE *or* straight from Health Connect, optional
+  **Google Fit sync** (Huawei records mirrored under the PulseNX origin so any Health Connect
+  reader picks them up), and a Liquid Glass UI over an animated aurora background.
 
 ## Privacy
 
@@ -66,3 +74,6 @@ Requires a JDK 17+ and an Android SDK with platform 34; `local.properties` point
 2. **PC**: launch PulseNX, note the 6-character **link code** in the header.
 3. **Phone**: install the PulseNX Bridge APK, enter the link code (cloud) or PC IP (LAN — usually
    auto-discovered), tap **Link PC**, then **Scan & Link Watch**. Vitals start streaming.
+4. **Health data** (optional): grant the phone app its Health Connect permissions to fill the
+   Daily Health card, and switch the HR source to *Health Connect* if you would rather read
+   Huawei Health than pair a BLE watch.

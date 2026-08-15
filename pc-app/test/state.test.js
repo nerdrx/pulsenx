@@ -16,6 +16,7 @@ const assert = require('node:assert/strict');
 const {
   VitalsState,
   zoneFor,
+  normalizeHealth,
   rmssd,
   kcalPerMinute,
   stressIndex,
@@ -430,4 +431,176 @@ test('formatClock renders HH:MM:SS', () => {
   assert.equal(formatClock(0), '00:00:00');
   assert.equal(formatClock(61), '00:01:01');
   assert.equal(formatClock(3725), '01:02:05');
+});
+
+// ---------------------------------------------------------------------------
+// Health Connect daily summary (normalizeHealth)
+// ---------------------------------------------------------------------------
+const HEALTH_TS = 1_734_300_000_000;
+
+/** The message the phone sends verbatim (SPEC.md "Health summary message"). */
+function healthMessage(summary, extra = {}) {
+  return { type: 'health', ts: HEALTH_TS, summary, ...extra };
+}
+
+const FULL_SUMMARY = {
+  steps: 8421,
+  distanceKm: 6.2,
+  activeKcal: 412.5,
+  totalKcal: 1980.0,
+  sleepMin: 432,
+  restingBpm: 58,
+  minBpm: 52,
+  avgBpm: 74,
+  maxBpm: 141,
+  spo2Pct: 97.0,
+  source: 'huawei'
+};
+
+test('normalizeHealth passes a full valid payload straight through', () => {
+  assert.deepEqual(normalizeHealth(healthMessage(FULL_SUMMARY)), {
+    ts: HEALTH_TS,
+    steps: 8421,
+    distanceKm: 6.2,
+    activeKcal: 412.5,
+    totalKcal: 1980,
+    sleepMin: 432,
+    restingBpm: 58,
+    minBpm: 52,
+    avgBpm: 74,
+    maxBpm: 141,
+    spo2Pct: 97,
+    source: 'huawei'
+  });
+});
+
+test('normalizeHealth always returns the whole field set, even for an all-null summary', () => {
+  const allNull = Object.fromEntries(Object.keys(FULL_SUMMARY).map((k) => [k, null]));
+  const out = normalizeHealth(healthMessage(allNull));
+
+  assert.equal(out.ts, HEALTH_TS);
+  assert.equal(out.source, 'healthconnect', 'a null source is plain Health Connect');
+  for (const key of ['steps', 'distanceKm', 'activeKcal', 'totalKcal', 'sleepMin',
+    'restingBpm', 'minBpm', 'avgBpm', 'maxBpm', 'spo2Pct']) {
+    assert.equal(out[key], null, `"${key}" must stay null, never 0`);
+  }
+});
+
+test('normalizeHealth fills in every field for an empty summary object', () => {
+  const out = normalizeHealth(healthMessage({}));
+  assert.deepEqual(Object.keys(out).sort(), [
+    'activeKcal', 'avgBpm', 'distanceKm', 'maxBpm', 'minBpm', 'restingBpm',
+    'sleepMin', 'source', 'spo2Pct', 'steps', 'totalKcal', 'ts'
+  ]);
+  assert.equal(out.steps, null);
+  assert.equal(out.source, 'healthconnect');
+});
+
+test('normalizeHealth rejects garbage per field and keeps the usable ones', () => {
+  const out = normalizeHealth(healthMessage({
+    steps: 'not a number',
+    distanceKm: NaN,
+    activeKcal: true,              // Number(true) is 1 — never a measurement
+    totalKcal: {},
+    sleepMin: Infinity,
+    restingBpm: '',                // Number('') is 0 — never a measurement
+    minBpm: -5,                    // a negative heart rate is a bad read
+    avgBpm: [74],
+    maxBpm: undefined,
+    spo2Pct: 96.5,                 // the one good reading survives
+    source: 'huawei'
+  }));
+
+  for (const key of ['steps', 'distanceKm', 'activeKcal', 'totalKcal', 'sleepMin',
+    'restingBpm', 'minBpm', 'avgBpm', 'maxBpm']) {
+    assert.equal(out[key], null, `"${key}" must be rejected`);
+  }
+  assert.equal(out.spo2Pct, 96.5, 'one bad field must not discard the rest of the day');
+  assert.equal(out.source, 'huawei');
+});
+
+test('normalizeHealth accepts numeric strings the way the rest of the pipeline does', () => {
+  const out = normalizeHealth(healthMessage({ steps: '8421', distanceKm: '6.24' }));
+  assert.equal(out.steps, 8421);
+  assert.equal(out.distanceKm, 6.2);
+});
+
+test('normalizeHealth rounds counts to integers and measurements to one decimal', () => {
+  const out = normalizeHealth(healthMessage({
+    steps: 8421.6,
+    sleepMin: 431.5,
+    restingBpm: 57.4,
+    minBpm: 51.5,
+    avgBpm: 73.49,
+    maxBpm: 140.99,
+    distanceKm: 6.249,
+    activeKcal: 412.55,
+    totalKcal: 1979.94,
+    spo2Pct: 96.96
+  }));
+
+  assert.equal(out.steps, 8422);
+  assert.equal(out.sleepMin, 432);
+  assert.equal(out.restingBpm, 57);
+  assert.equal(out.minBpm, 52);
+  assert.equal(out.avgBpm, 73);
+  assert.equal(out.maxBpm, 141);
+  assert.equal(out.distanceKm, 6.2);
+  assert.equal(out.activeKcal, 412.6);
+  assert.equal(out.totalKcal, 1979.9);
+  assert.equal(out.spo2Pct, 97);
+});
+
+test('normalizeHealth coerces the source to the two documented values', () => {
+  const source = (value) => normalizeHealth(healthMessage({ source: value })).source;
+
+  assert.equal(source('huawei'), 'huawei');
+  assert.equal(source('HUAWEI'), 'huawei');
+  assert.equal(source(' Huawei '), 'huawei');
+  assert.equal(source('healthconnect'), 'healthconnect');
+  assert.equal(source('com.google.android.apps.fitness'), 'healthconnect');
+  assert.equal(source(''), 'healthconnect');
+  assert.equal(source(undefined), 'healthconnect');
+  assert.equal(source(null), 'healthconnect');
+  assert.equal(source(42), 'healthconnect');
+});
+
+test('normalizeHealth rejects anything that is not a health message', () => {
+  assert.equal(normalizeHealth(null), null);
+  assert.equal(normalizeHealth(undefined), null);
+  assert.equal(normalizeHealth('health'), null);
+  assert.equal(normalizeHealth(42), null);
+  assert.equal(normalizeHealth([]), null);
+  assert.equal(normalizeHealth({}), null, 'no type');
+  // A vitals sample must never be mistaken for a summary.
+  assert.equal(normalizeHealth({ bpm: 72, rr: 812, src: 'health' }), null);
+  assert.equal(normalizeHealth({ type: 'vitals', summary: FULL_SUMMARY }), null);
+});
+
+test('normalizeHealth rejects a message whose summary is missing or not an object', () => {
+  assert.equal(normalizeHealth({ type: 'health', ts: HEALTH_TS }), null);
+  assert.equal(normalizeHealth({ type: 'health', ts: HEALTH_TS, summary: null }), null);
+  assert.equal(normalizeHealth({ type: 'health', ts: HEALTH_TS, summary: 'steps' }), null);
+  assert.equal(normalizeHealth({ type: 'health', ts: HEALTH_TS, summary: 8421 }), null);
+  assert.equal(normalizeHealth({ type: 'health', ts: HEALTH_TS, summary: [FULL_SUMMARY] }), null);
+});
+
+test('normalizeHealth falls back to the supplied clock for a missing or broken ts', () => {
+  const now = 1_700_000_000_000;
+  assert.equal(normalizeHealth({ type: 'health', summary: {} }, now).ts, now);
+  assert.equal(normalizeHealth(healthMessage({}, { ts: null }), now).ts, now);
+  assert.equal(normalizeHealth(healthMessage({}, { ts: 'yesterday' }), now).ts, now);
+  assert.equal(normalizeHealth(healthMessage({}, { ts: -1 }), now).ts, now);
+  assert.equal(normalizeHealth(healthMessage({}, { ts: HEALTH_TS + 0.7 }), now).ts, HEALTH_TS + 1);
+
+  // Without a clock the wall time stands in, so the card can always stamp itself.
+  const stamped = normalizeHealth({ type: 'health', summary: {} }).ts;
+  assert.ok(Number.isInteger(stamped) && Math.abs(Date.now() - stamped) < 5000, `got ${stamped}`);
+});
+
+test('normalizeHealth is pure — it never mutates the message it is handed', () => {
+  const message = healthMessage({ ...FULL_SUMMARY, steps: 8421.6 });
+  const snapshot = JSON.parse(JSON.stringify(message));
+  normalizeHealth(message);
+  assert.deepEqual(message, snapshot);
 });

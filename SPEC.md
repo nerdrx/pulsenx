@@ -42,7 +42,23 @@ PC app:
 1. **Transports**: cloud MQTT (default, link code) AND LAN WebSocket :9000; UDP discovery beacon :9001.
 2. **Link code**: 6-char uppercase alphanumeric, regenerated per launch, shown in header.
    MQTT topic: `pulsenx/vitals/pc-<CODE>`. Handshake payloads: `"HELLO"` (phone joined),
-   `"BYE"` (phone left). Vitals JSON: `{bpm:int, rr:int(ms), contact:bool, battery:int, rssi:int}`.
+   `"BYE"` (phone left). Vitals JSON: `{bpm:int, rr:int(ms), contact:bool, battery:int, rssi:int,
+   src?:"ble"|"health"}`. `src` names the sensor the phone read the sample from — the watch BLE
+   profile or Health Connect; absent means `"ble"`. It is shown in the link status line and
+   changes nothing in the pipeline.
+   **Health summary message** (same channel, sent on link-up and every 5 min while linked):
+   ```json
+   {"type":"health","ts":1734300000000,"summary":{
+     "steps":8421,"distanceKm":6.2,"activeKcal":412.5,"totalKcal":1980.0,
+     "sleepMin":432,"restingBpm":58,"minBpm":52,"avgBpm":74,"maxBpm":141,
+     "spo2Pct":97.0,"source":"huawei"}}
+   ```
+   Every summary field is nullable (JSON `null` when unknown); `ts` is epoch ms at read time.
+   `source` is `"huawei"` when a contributing Health Connect record has a Huawei dataOrigin,
+   else `"healthconnect"`. Windows: steps/distance/kcal/min-avg-max BPM = today (local midnight →
+   now); `sleepMin` = sleep sessions overlapping the last 24 h; `restingBpm`/`spo2Pct` = the most
+   recent sample of today (or the last 24 h). Health messages are routed away from the vitals
+   pipeline in `handleVitals` — no OSC, Discord, alarms or recording side effects.
 3. **Dashboard**: live BPM display + animated SVG heart (beat speed = real BPM), HRV (rMSSD from
    RR history, window 30), training-zone badge (WarmUp/FatBurn/Aerobic/Anaerobic/Extreme from
    %maxHR), min/max/avg BPM, calories (Keytel formula, gender/age/weight profile), stress index
@@ -74,7 +90,13 @@ PC app:
 12. **Settings autosave**: every control persists (now in userData JSON via main process, not
     localStorage) and restores on launch; workers (OSC loops, Discord) resume per saved state.
 13. **Connection status UI**: Awaiting Link / Phone Linked / offline states, phone battery + RSSI
-    readout, local LAN endpoint display, link code display.
+    readout, local LAN endpoint display, link code display. Vitals carrying `src:"health"` add a
+    `· HEALTH` marker to the status line.
+14. **Daily Health card** (dashboard): the phone's Health Connect daily summary — steps, distance
+    (km), active/total kcal, sleep as `7 h 12 m`, resting HR, today's min/avg/max BPM, SpO2 %.
+    Unknown fields render `--`, never 0. Carries a source chip (`via Huawei Health` /
+    `via Health Connect`) and an `updated HH:MM` stamp from `ts`. Placeholder state until the
+    first `health` event; the last summary is cached in main and replayed on dashboard reload.
 
 Android app (`com.pulsenx.bridge`, minSdk 26, target/compile 34):
 1. BLE heart-rate profile client (0x180D/0x2A37): scan (15 s timeout, name OR service filter),
@@ -90,6 +112,15 @@ Android app (`com.pulsenx.bridge`, minSdk 26, target/compile 34):
 5. Sends phone battery % and watch RSSI with vitals. Haptic alert >165 BPM.
 6. Single-screen UI: link code/IP input, Link PC + Scan Watch buttons, status lines, big live BPM.
    New NX dark theme (#7700FF accents), adaptive launcher icon (vector XML).
+7. **Huawei Health source via Health Connect**: HR source selector (watch BLE / Health Connect),
+   permission flow, daily summary read from Health Connect (Huawei Health's records included) and
+   sent to the PC as the `{"type":"health"}` message; live HR from Health Connect is tagged
+   `src:"health"`. Optional write-back of BLE-captured HR into Health Connect.
+8. **Google Fit sync via Health Connect mirroring**: Huawei-origin records re-written under the
+   PulseNX origin (clientRecordId dedup) so Google Fit and other Health Connect readers pick them
+   up. Off by default.
+9. **Liquid Glass UI**: translucent blurred surfaces over an animated aurora canvas background
+   (`ui/AuroraBackgroundView`, pure Canvas, no new dependencies), NX violet/cyan accents.
 
 ## Known bugs in the old code — must be FIXED, not ported
 
@@ -128,7 +159,13 @@ Main → renderer (events on `window.pulsenx.on(channel, cb)`):
 - `vitals` — processed sample `{bpm, rrMs, hrv|null, stress, stressText, zone, zoneKey, contact,
    battery|null, rssi|null, stats:{min,max,avg,kcal}, stressStats:{min,max,avg}, zonePct:{...},
    coherence, breathPhase, elapsedRecSec|null, recording, chartPoint:{t,bpm,stress}}`
-- `link` — `{state:'awaiting'|'connected'|'offline', source?, phone?:{battery,rssi}, detail?}`
+- `health` — normalised daily summary `{ts, steps, distanceKm, activeKcal, totalKcal, sleepMin,
+   restingBpm, minBpm, avgBpm, maxBpm, spo2Pct, source:'huawei'|'healthconnect'}`; every field
+   except `ts`/`source` is nullable. Produced by the pure `normalizeHealth(raw)` in state.js
+   (numbers coerced, counts rounded to ints, measurements to 1 decimal, garbage → null, invalid
+   message → null); cached in main and re-sent on the dashboard's `did-finish-load`.
+- `link` — `{state:'awaiting'|'connected'|'offline', source?, src?:'ble'|'health',
+   phone?:{battery,rssi}, detail?}`
 - `overlay` — `{active}`  (window opened/closed from any path)
 - `alarm` — `{type:'highHr'|'threshold', active:bool}` → renderer drives WebAudio
 - `breath` — `{phase:'inhale'|'exhale'}` → renderer chime + circle animation
@@ -173,7 +210,25 @@ Threshold alarm owns: `HeartRateWarning` (bool).
 
 - `pc-app`: electron-builder → `dist/PulseNX.AppImage` (linux) and `dist/PulseNX.exe`
   (win portable). Electron 31.x (cached locally), builder ^26.
+  Tests: `npm run test:unit` (node --test, pure logic) and `npm run test:e2e` (launches the real
+  app; needs a DISPLAY or xvfb).
 - `android-app`: gradle 8.13 (cached), AGP 8.x compatible with it, JDK 21 at
   `/run/media/nerdrx/Lex/claude/tools/jdk-21.0.12+8`, SDK at
   `/run/media/nerdrx/Lex/claude/tools/android-sdk` (build-tools 34/35, platform android-34).
   Release APK signed with repo-local generated keystore → `pulsenx_bridge.apk`.
+
+### Port overrides (test isolation)
+
+Every listening port is read once at startup from the environment, falling back to the documented
+default, so a test instance can run beside a live one that already owns them:
+`PULSENX_PORT_WS` (LAN WebSocket, 9000), `PULSENX_PORT_DISCOVERY` (UDP beacon, 9001),
+`PULSENX_PORT_OBS` (OBS widget, 9005), `PULSENX_PORT_E2E` (`--e2e-hooks` probe, 9010).
+`PULSENX_NO_BEACON=1` skips the discovery broadcaster entirely, so a test instance never
+advertises itself to the user's phone. An unset or invalid value means the default, and the OBS
+widget page + `app:info` endpoints follow whatever the overrides resolve to.
+
+The OSC target is an outbound client, i.e. a normal setting rather than a listening port, so it
+needs no override: `npm run test:e2e` pre-seeds `<user-data-dir>/settings.json` with
+`{"osc":{"port":19100}}` before launch, which the store's shaped merge applies over the defaults.
+The harness therefore runs fully isolated on 19000/19005/19010/19100 with the beacon off, and a
+production instance streaming OSC to :9000 can no longer contaminate its assertions.

@@ -1,17 +1,47 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="nx_bg">#0a0512</color>
+    <!-- ===== Brand palette (nx_bg_deep is used by the logo/launcher vectors) ===== -->
     <color name="nx_bg_deep">#12081f</color>
-    <color name="nx_card">#16102a</color>
-    <color name="nx_card_edge">#2a1c4a</color>
-    <color name="nx_field">#0d0719</color>
 
     <color name="nx_accent">#7700FF</color>
-    <color name="nx_accent_soft">#9d3bff</color>
+    <color name="nx_accent_soft">#9c3dff</color>
     <color name="nx_cyan">#00e5ff</color>
     <color name="nx_heart">#ff2d55</color>
 
     <color name="nx_text">#f2eaff</color>
     <color name="nx_muted">#9b8fb5</color>
     <color name="nx_dim">#6b5f85</color>
+
+    <!-- ===== Liquid Glass base ===== -->
+    <!-- Near-black void the aurora paints on top of. -->
+    <color name="nx_void">#07060d</color>
+    <color name="nx_text_strong">#ffffff</color>
+
+    <!-- Glass fills: translucent white over the aurora, never opaque. -->
+    <color name="glass_fill">#14ffffff</color>
+    <color name="glass_fill_inset">#3d000000</color>
+
+    <!-- Hairlines & speculars. -->
+    <color name="glass_hairline">#1fffffff</color>
+    <color name="glass_hairline_soft">#26ffffff</color>
+    <color name="glass_hairline_bright">#73ffffff</color>
+    <color name="glass_hairline_fade">#0dffffff</color>
+    <color name="glass_specular_top">#1affffff</color>
+    <color name="glass_specular_none">#00ffffff</color>
+    <color name="glass_ripple">#33ffffff</color>
+
+    <!-- Violet pill gradient. -->
+    <color name="nx_accent_grad_a">#7700FF</color>
+    <color name="nx_accent_grad_b">#9c3dff</color>
+
+    <!-- Switch. -->
+    <color name="nx_track_off">#29ffffff</color>
+    <color name="nx_thumb">#fff6f2ff</color>
+
+    <!-- ===== Aurora background (AuroraBackgroundView reads these) ===== -->
+    <color name="aurora_base">#07060d</color>
+    <color name="aurora_blob_violet">#7700FF</color>
+    <color name="aurora_blob_cyan">#00e5ff</color>
+    <color name="aurora_blob_heart">#ff2d55</color>
+    <color name="aurora_blob_indigo">#3d1bff</color>
 </resources>

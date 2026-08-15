@@ -9,6 +9,7 @@
  *
  * Routes:
  *   GET /dom                     -> snapshot of the dashboard's key readouts
+ *                                   (live vitals + the Daily Health card)
  *   GET /action/record-start     -> clicks Start Recording
  *   GET /action/record-stop      -> clicks Stop Recording
  *   GET /inject?bpm=NN&rr=NN     -> feeds one synthetic sample through the
@@ -40,6 +41,18 @@ const DOM_SNAPSHOT = `(() => {
     coherence: txt('lbl-flow-coherence'),
     zoneWarmupPct: txt('lbl-pct-warm'),
     zoneWarmupWidth: warmup ? warmup.style.width : null,
+    healthSteps: txt('health-steps'),
+    healthDistance: txt('health-distance'),
+    healthActiveKcal: txt('health-active-kcal'),
+    healthTotalKcal: txt('health-total-kcal'),
+    healthSleep: txt('health-sleep'),
+    healthRestingBpm: txt('health-resting-bpm'),
+    healthMinBpm: txt('health-min-bpm'),
+    healthAvgBpm: txt('health-avg-bpm'),
+    healthMaxBpm: txt('health-max-bpm'),
+    healthSpo2: txt('health-spo2'),
+    healthSource: txt('health-source'),
+    healthUpdated: txt('health-updated'),
     recording: !!(rec && rec.classList.contains('active')),
     recordStartEnabled: !!(startBtn && !startBtn.disabled),
     exportEnabled: !!(exportBtn && !exportBtn.disabled)
@@ -95,8 +108,10 @@ function startE2eHooks({ getWindow, inject, port = E2E_HOOKS_PORT } = {}) {
         return respond(200, await win.webContents.executeJavaScript(DOM_SNAPSHOT));
       }
 
-      // GET /screenshot?path=/abs/file.png[&view=dashboard|osc|alarms|breathing|history|settings]
+      // GET /screenshot?path=/abs/file.png[&view=dashboard|osc|alarms|breathing|history|settings][&fullHeight=1]
       // Captures the main window to a PNG on disk (loopback/test only).
+      // fullHeight=1 temporarily grows the window to the page's scroll height
+      // so cards below the fold land in the capture, then restores the bounds.
       if (route === '/screenshot') {
         const outPath = params.get('path');
         if (!outPath || !outPath.startsWith('/')) {
@@ -109,7 +124,17 @@ function startE2eHooks({ getWindow, inject, port = E2E_HOOKS_PORT } = {}) {
           );
           await new Promise((r) => setTimeout(r, 350));
         }
+        const restoreBounds = params.get('fullHeight') === '1' ? win.getBounds() : null;
+        if (restoreBounds) {
+          const pageHeight = await win.webContents.executeJavaScript(
+            '(document.querySelector(".view.active") || document.documentElement).scrollHeight'
+          );
+          const [w] = win.getContentSize();
+          win.setContentSize(w, Math.min(pageHeight + 90, 4000));
+          await new Promise((r) => setTimeout(r, 300));
+        }
         const image = await win.webContents.capturePage();
+        if (restoreBounds) win.setBounds(restoreBounds);
         require('fs').writeFileSync(outPath, image.toPNG());
         return respond(200, { ok: true, path: outPath });
       }

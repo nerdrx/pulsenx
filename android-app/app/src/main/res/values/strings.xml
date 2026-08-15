@@ -1,11 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- ===== Existing keys (frozen by contract §3 - do not rename or remove) ===== -->
     <string name="app_name">PulseNX Bridge</string>
-    <string name="app_subtitle">made with Claude</string>
+    <!-- Frozen by contract even though the redesigned header no longer uses it. -->
+    <string name="app_subtitle" tools:ignore="UnusedResources">made with Claude</string>
 
     <string name="label_live_hr">LIVE HEART RATE</string>
     <string name="label_bpm">BPM</string>
-    <string name="label_link">LINK</string>
+    <!-- Frozen by contract; the section header it labelled is now a card title. -->
+    <string name="label_link" tools:ignore="UnusedResources">LINK</string>
     <string name="label_pc">PC</string>
     <string name="label_watch">Watch</string>
 
@@ -24,4 +27,36 @@
     <string name="status_watch_live">Streaming</string>
 
     <string name="hint_unpair">Long-press Scan to unpair the saved watch</string>
+
+    <!-- ===== UI chrome (owned by the UI layer; logic-facing strings live in strings_health.xml) ===== -->
+    <string name="title_large">PulseNX</string>
+    <string name="header_subtitle">Heart rate, from your wrist to your PC</string>
+    <string name="footer_signature">PulseNX — made with Claude</string>
+    <string name="placeholder_value">--</string>
+
+    <!-- Card 1: PC link -->
+    <string name="card_pc_title">PC Link</string>
+
+    <!-- Card 2: heart-rate source -->
+    <string name="card_source_title">Heart-Rate Source</string>
+    <string name="seg_source_watch">Watch</string>
+    <string name="seg_source_health">Huawei Health</string>
+    <string name="card_source_caption">Stream beats live from a BLE watch, or read them from Health Connect.</string>
+
+    <!-- Card 3: live BPM -->
+    <string name="cd_heart_accent">Heartbeat</string>
+
+    <!-- Card 4: health -->
+    <string name="card_health_title">Huawei Health / Google Fit</string>
+    <string name="card_health_caption">Reads today\'s activity through Health Connect and forwards a summary to your PC.</string>
+    <string name="action_health_permissions">Grant Health Access</string>
+    <string name="label_hc_write">Write HR to Health Connect</string>
+    <string name="desc_hc_write">Save watch beats into your health data</string>
+    <string name="label_fit_mirror">Mirror to Google Fit</string>
+    <string name="desc_fit_mirror">Re-publish Huawei records so other apps see them</string>
+    <string name="tile_steps">Steps</string>
+    <string name="tile_kcal">Calories</string>
+    <string name="tile_sleep">Sleep</string>
+    <string name="tile_rhr">Rest HR</string>
+    <string name="status_health_idle">Not connected</string>
 </resources>

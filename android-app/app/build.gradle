@@ -19,8 +19,8 @@ android {
         // reject the install otherwise. Android gates upgrades on versionCode,
         // not versionName, so walking the name back to match the suite version
         // (pc-app/package.json) is safe.
-        versionCode 3
-        versionName "1.0.0"
+        versionCode 4
+        versionName "1.1.0"
     }
 
     signingConfigs {
@@ -75,4 +75,14 @@ android {
 dependencies {
     implementation 'com.squareup.okhttp3:okhttp:4.12.0'
     implementation 'org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.5'
+
+    // Health Connect is the sanctioned health-data exchange layer on Android:
+    // Google Fit's third-party APIs are closed to new integrations, so everything
+    // (Huawei Health included) is read from / written to Health Connect instead.
+    // 1.1.0-alpha07 is the newest release that still compiles against compileSdk 34.
+    implementation 'androidx.health.connect:connect-client:1.1.0-alpha07'
+
+    // The Health Connect client is coroutine-only; WorkManager drives the mirror sync.
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1'
+    implementation 'androidx.work:work-runtime-ktx:2.9.1'
 }

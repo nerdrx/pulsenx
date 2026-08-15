@@ -13,6 +13,15 @@
 -dontwarn org.bouncycastle.**
 -dontwarn org.openjsse.**
 
+# --- Health Connect (AIDL-backed, reflected record/permission types) ---
+-keep class androidx.health.connect.client.** { *; }
+-keep class androidx.health.platform.client.** { *; }
+-dontwarn androidx.health.**
+
+# --- WorkManager instantiates workers by class name ---
+-keep class * extends androidx.work.ListenableWorker { public <init>(...); }
+-keep class com.pulsenx.bridge.HealthSyncWorker { *; }
+
 # --- App entry points referenced from the manifest ---
 -keep class com.pulsenx.bridge.MainActivity { *; }
 -keep class com.pulsenx.bridge.VitalsBridgeService { *; }

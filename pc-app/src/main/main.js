@@ -14,24 +14,51 @@
  *                                     \-> ws broadcast --> OBS widget
  *                                     \-> OSC engine   --> VRChat
  *                                     \-> Discord RPC
+ *
+ *   phone {type:'health'} -------> main --> normalizeHealth --> IPC 'health'
+ *   (Health Connect daily summary; shares the transports, not the pipeline)
  */
 
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 
-const { VitalsState } = require('./state');
+const { VitalsState, normalizeHealth } = require('./state');
 const { SettingsStore } = require('./settings');
-const { LanServer } = require('./ws-server');
-const { DiscoveryBeacon, localIpAddress } = require('./discovery');
+const { LanServer, DEFAULT_PORT: DEFAULT_LAN_PORT } = require('./ws-server');
+const { DiscoveryBeacon, localIpAddress, BEACON_PORT: DEFAULT_BEACON_PORT } = require('./discovery');
 const { MqttLink, generateLinkCode } = require('./mqtt-link');
 const { OscEngine } = require('./osc-engine');
-const { ObsServer } = require('./obs-server');
+const { ObsServer, OBS_PORT: DEFAULT_OBS_PORT } = require('./obs-server');
 const { DiscordLink } = require('./discord-rpc');
 const csv = require('./csv');
-const { startE2eHooks } = require('./e2e-hooks');
+const { startE2eHooks, E2E_HOOKS_PORT: DEFAULT_E2E_PORT } = require('./e2e-hooks');
 
 const E2E_MODE = process.argv.includes('--e2e-hooks');
-const LAN_PORT = 9000;
+
+/**
+ * Every listening port is overridable from the environment so an automated run
+ * can stand the whole app up beside a production instance that already owns the
+ * defaults. Unset (or nonsense) means the documented default, so a normal launch
+ * behaves exactly as before. Read once, at startup.
+ */
+function envPort(name, fallback) {
+  const raw = process.env[name];
+  if (raw === undefined || String(raw).trim() === '') return fallback;
+  const port = Number(raw);
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    console.warn(`[main] ignoring ${name}="${raw}" (not a valid port), using ${fallback}`);
+    return fallback;
+  }
+  return port;
+}
+
+const LAN_PORT = envPort('PULSENX_PORT_WS', DEFAULT_LAN_PORT);
+const BEACON_PORT = envPort('PULSENX_PORT_DISCOVERY', DEFAULT_BEACON_PORT);
+const OBS_PORT = envPort('PULSENX_PORT_OBS', DEFAULT_OBS_PORT);
+const E2E_PORT = envPort('PULSENX_PORT_E2E', DEFAULT_E2E_PORT);
+// A test instance must never advertise itself to the user's real phone app.
+const BEACON_ENABLED = process.env.PULSENX_NO_BEACON !== '1';
+
 const HIGH_HR_TONE_BPM = 165;
 const LIVE_WATCHDOG_MS = 1000;
 const BREATH_TICK_MS = 250;
@@ -51,6 +78,9 @@ let oscEngine = null;
 let obsServer = null;
 let discord = null;
 let e2eServer = null;
+
+// Last valid daily health summary, replayed whenever the dashboard (re)loads.
+let lastHealth = null;
 
 let liveWatchdog = null;
 let breathTicker = null;
@@ -107,6 +137,13 @@ function createMainWindow() {
   });
 
   mainWindow.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
+
+  mainWindow.webContents.on('did-finish-load', () => {
+    // Same repaint contract as the overlay: the daily summary only arrives
+    // every few minutes, so a freshly loaded dashboard is handed the cached one
+    // instead of sitting on placeholders until the next push.
+    if (lastHealth) sendToRenderer('health', lastHealth);
+  });
 
   mainWindow.once('ready-to-show', () => mainWindow.show());
 
@@ -169,6 +206,10 @@ function closeOverlay() {
 // Vitals pipeline
 // ==========================================================================
 function handleVitals(raw, meta) {
+  // Daily health summaries ride the same socket/topic as vitals but must never
+  // touch the vitals pipeline — no OSC, no Discord, no alarms, no recording.
+  if (raw && raw.type === 'health') return handleHealth(raw, meta);
+
   const now = Date.now();
   const processed = state.ingest(raw, now);
   if (!processed) return null;
@@ -201,9 +242,10 @@ function handleVitals(raw, meta) {
   // 5. Discord.
   if (discord && cfg.discord.enabled) discord.update(processed);
 
-  // 6. Link status (battery / RSSI readout). Vitals arrive several times a
-  // second; the status line only needs repainting when something in it moves.
-  publishLinkStatus((meta && meta.source) || 'lan', processed);
+  // 6. Link status (battery / RSSI readout, plus which sensor the phone is
+  // reading). Vitals arrive several times a second; the status line only needs
+  // repainting when something in it moves.
+  publishLinkStatus((meta && meta.source) || 'lan', processed, raw && raw.src);
 
   // 7. Alarms.
   evaluateAlarms(processed, cfg, now);
@@ -214,8 +256,11 @@ function handleVitals(raw, meta) {
 let lastLinkKey = '';
 let lastLinkSentAt = 0;
 
-function publishLinkStatus(source, processed) {
-  const key = `${source}|${processed.battery}|${processed.rssi}`;
+function publishLinkStatus(source, processed, srcArg) {
+  // `source` is the transport (lan | cloud); `src` is the sensor the phone read
+  // the sample from. Absent means the watch BLE profile, per the protocol.
+  const src = srcArg === 'health' ? 'health' : 'ble';
+  const key = `${source}|${src}|${processed.battery}|${processed.rssi}`;
   const now = Date.now();
   // Refresh at least every 5 s so a reconnected dashboard is never left stale.
   if (key === lastLinkKey && (now - lastLinkSentAt) < 5000) return;
@@ -225,8 +270,31 @@ function publishLinkStatus(source, processed) {
   sendToRenderer('link', {
     state: 'connected',
     source,
+    src,
     phone: { battery: processed.battery, rssi: processed.rssi }
   });
+}
+
+// ==========================================================================
+// Health pipeline (Health Connect daily summary)
+// ==========================================================================
+/**
+ * Handles one `{type:'health'}` message. The summary is a five-minutely
+ * readout, not a live sample: it is normalised, cached for dashboard reloads
+ * and pushed to the renderer, and nothing else in the app hears about it.
+ *
+ * @param {object} raw   parsed message off the transport
+ * @param {object} meta  transport metadata (unused — a summary is the same
+ *                       whichever way it arrived)
+ * @returns {?object} the normalised summary, or null if the message was junk
+ */
+function handleHealth(raw, meta) {
+  const summary = normalizeHealth(raw);
+  if (!summary) return null;
+
+  lastHealth = summary;
+  sendToRenderer('health', summary);
+  return summary;
 }
 
 function evaluateAlarms(processed, cfg, now) {
@@ -343,8 +411,12 @@ function startTransports() {
   });
   lanServer.start();
 
-  beacon = new DiscoveryBeacon({ servicePort: LAN_PORT });
-  beacon.start();
+  if (BEACON_ENABLED) {
+    beacon = new DiscoveryBeacon({ servicePort: LAN_PORT, beaconPort: BEACON_PORT });
+    beacon.start();
+  } else {
+    console.log('Discovery beacon disabled (PULSENX_NO_BEACON=1)');
+  }
 
   mqttLink = new MqttLink({ code: linkCode });
   mqttLink.on('vitals', (raw, meta) => handleVitals(raw, meta));
@@ -357,7 +429,9 @@ function startTransports() {
   mqttLink.on('status', (status) => sendToRenderer('link', { ...status, source: 'cloud' }));
   mqttLink.start();
 
-  obsServer = new ObsServer();
+  // The widget page connects back to the LAN hub, so it has to be told which
+  // port that actually is.
+  obsServer = new ObsServer({ port: OBS_PORT, wsPort: LAN_PORT });
   obsServer.start();
 
   oscEngine = new OscEngine();
@@ -405,7 +479,7 @@ function registerIpc() {
     version: app.getVersion(),
     linkCode,
     lanEndpoint: `ws://${localIpAddress()}:${LAN_PORT}`,
-    obsUrl: obsServer ? obsServer.url() : 'http://localhost:9005'
+    obsUrl: obsServer ? obsServer.url() : `http://localhost:${OBS_PORT}`
   }));
 }
 
@@ -427,7 +501,8 @@ function bootstrap() {
     e2eServer = startE2eHooks({
       getWindow: () => mainWindow,
       // Synthetic samples go through the exact same path as phone traffic.
-      inject: (sample) => handleVitals(sample, { source: 'e2e' })
+      inject: (sample) => handleVitals(sample, { source: 'e2e' }),
+      port: E2E_PORT
     });
   }
 
@@ -453,8 +528,10 @@ function shutdown() {
   }
 }
 
-// A second instance could never bind :9000/:9005 anyway; hand focus back to the
-// window that owns them instead of failing halfway through boot.
+// A second instance sharing this user-data directory could never bind the same
+// ports anyway; hand focus back to the window that owns them instead of failing
+// halfway through boot. (A test instance runs off its own --user-data-dir and
+// its own PULSENX_PORT_* overrides, so it takes its own lock.)
 const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) {
   app.quit();

@@ -196,6 +196,13 @@
   gap: 10px;
 }
 
+/* Ten daily-health readouts sit as two clean rows of five. */
+.health-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
 .form-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -208,6 +215,7 @@
   .metrics-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .hr-card { grid-column: 1 / -1; }
   .stats-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .health-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
 @media (max-width: 1080px) {
@@ -224,6 +232,7 @@
 @media (max-width: 900px) {
   .metrics-grid { grid-template-columns: minmax(0, 1fr); }
   .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .health-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .form-grid { grid-template-columns: minmax(0, 1fr); }
   .app-main { padding: 16px 14px 28px; }
 }

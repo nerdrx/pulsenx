@@ -50,13 +50,39 @@ object BridgeEngine {
             notifyUiStatusChanged()
         }
 
+    /** "ble" (watch GATT) or "health" (Health Connect poller) — mirrors the HR_SOURCE pref. */
+    var hrSource: String = VitalsBridgeService.SOURCE_BLE
+        set(value) {
+            field = value
+            notifyUiStatusChanged()
+        }
+
+    /** Null while the Health Connect source is healthy, otherwise why it is not producing. */
+    var healthSourceError: String? = null
+        set(value) {
+            field = value
+            notifyUiStatusChanged()
+            notifyHealthChanged()
+        }
+
+    /** Epoch ms of the newest sample the Health Connect source forwarded. */
+    var lastHealthSampleAt = 0L
+
     var lastBpm = 0
     var lastRssi = 0
+
+    /** Latest daily roll-up read from Health Connect, or null before the first read. */
+    var lastHealthSummary: HealthSummary? = null
+        set(value) {
+            field = value
+            notifyHealthChanged()
+        }
 
     val discoveredDevices = ArrayList<BluetoothDevice>()
 
     var uiBpmListener: ((Int) -> Unit)? = null
     var uiStatusListener: (() -> Unit)? = null
+    var uiHealthListener: (() -> Unit)? = null
 
     fun addDiscoveredDevice(device: BluetoothDevice) {
         if (discoveredDevices.none { it.address == device.address }) {
@@ -73,9 +99,14 @@ object BridgeEngine {
         main.post { uiStatusListener?.invoke() }
     }
 
+    fun notifyHealthChanged() {
+        main.post { uiHealthListener?.invoke() }
+    }
+
     fun resetVitals() {
         lastBpm = 0
         lastRssi = 0
+        lastHealthSampleAt = 0L
         main.post { uiBpmListener?.invoke(0) }
     }
 }

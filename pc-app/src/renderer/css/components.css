@@ -350,6 +350,31 @@
 .stat-box.hot .stat-val { color: #ff819b; }
 .stat-box.cool .stat-val { color: var(--cyan); }
 
+/* ============ daily health ============ */
+/* Ten readouts instead of six, so the values run a shade smaller than the live
+   vitals summary they sit under. */
+.health-card .stat-val { font-size: 1.16rem; }
+.health-meta {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.health-source {
+  text-transform: none;
+  letter-spacing: 0.02em;
+  font-family: var(--font);
+  background: rgba(0, 229, 255, 0.12);
+  border-color: rgba(0, 229, 255, 0.28);
+  color: var(--cyan);
+}
+.health-stamp {
+  font-family: var(--mono);
+  font-size: 0.63rem;
+  letter-spacing: 0.06em;
+  color: var(--txt-3);
+}
+.health-hint { margin-top: 12px; }
+
 /* ============ chart ============ */
 .chart-card .chart-box { height: 258px; position: relative; }
 .chart-legend {

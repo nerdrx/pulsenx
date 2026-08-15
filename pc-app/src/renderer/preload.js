@@ -25,6 +25,7 @@ const INVOKE_CHANNELS = [
 // Main -> renderer events. 'vitals-update' is the overlay window's feed.
 const EVENT_CHANNELS = [
   'vitals',
+  'health',
   'link',
   'overlay',
   'alarm',
