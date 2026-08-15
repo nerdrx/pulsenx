@@ -10,6 +10,9 @@ import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
 import android.provider.Settings
+import android.text.Editable
+import android.text.TextWatcher
+import android.text.format.DateFormat
 import android.view.View
 import android.view.WindowManager
 import android.view.inputmethod.InputMethodManager
@@ -26,6 +29,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import java.util.Date
 import java.util.Locale
 
 /**
@@ -37,6 +41,7 @@ class MainActivity : android.app.Activity() {
     private companion object {
         const val PERM_REQUEST = 101
         const val HC_PERM_REQUEST = 102
+        const val HW_AUTH_REQUEST = 103
         const val COLOR_OK = 0xFF3ddc84.toInt()
         const val COLOR_WARN = 0xFFffb020.toInt()
         const val COLOR_BAD = 0xFFff2d55.toInt()
@@ -63,6 +68,11 @@ class MainActivity : android.app.Activity() {
     private lateinit var tvHealthKcal: TextView
     private lateinit var tvHealthSleep: TextView
     private lateinit var tvHealthRhr: TextView
+
+    private lateinit var etHwClientId: EditText
+    private lateinit var etHwClientSecret: EditText
+    private lateinit var btnHwLink: Button
+    private lateinit var tvHwStatus: TextView
 
     /** Health Connect permission queries are suspend-only; this scope owns them. */
     private val uiScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -140,6 +150,11 @@ class MainActivity : android.app.Activity() {
         tvHealthSleep = findViewById(R.id.tvHealthSleep)
         tvHealthRhr = findViewById(R.id.tvHealthRhr)
 
+        etHwClientId = findViewById(R.id.etHwClientId)
+        etHwClientSecret = findViewById(R.id.etHwClientSecret)
+        btnHwLink = findViewById(R.id.btnHwLink)
+        tvHwStatus = findViewById(R.id.tvHwStatus)
+
         prefs().getString(VitalsBridgeService.KEY_PC_TARGET, "")
             ?.takeIf { it.isNotEmpty() }
             ?.let { etTarget.setText(it) }
@@ -188,7 +203,101 @@ class MainActivity : android.app.Activity() {
         }
 
         bindHealthViews()
+        bindHuaweiViews()
         renderState()
+    }
+
+    // ------------------------------------------------------------------
+    // Huawei Health Kit cloud link
+    // ------------------------------------------------------------------
+
+    private fun bindHuaweiViews() {
+        etHwClientId.setText(HuaweiCloud.clientId(this))
+        etHwClientSecret.setText(HuaweiCloud.clientSecret(this))
+
+        // Credentials persist as they are typed: pasting an ID, backgrounding the app
+        // to fetch the secret and coming back must not lose the first field.
+        val persist = object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
+            override fun afterTextChanged(s: Editable?) {
+                HuaweiCloud.saveCredentials(
+                    this@MainActivity,
+                    etHwClientId.text.toString(),
+                    etHwClientSecret.text.toString()
+                )
+                renderHuawei()
+            }
+        }
+        etHwClientId.addTextChangedListener(persist)
+        etHwClientSecret.addTextChangedListener(persist)
+
+        btnHwLink.setOnClickListener {
+            if (HuaweiCloud.isLinked(this)) {
+                HuaweiCloud.clear(this)
+                toast(getString(R.string.hw_toast_unlinked))
+                renderHuawei()
+                return@setOnClickListener
+            }
+            if (!HuaweiCloud.hasCredentials(this)) {
+                toast(getString(R.string.hw_error_no_credentials))
+                return@setOnClickListener
+            }
+            hideKeyboard()
+            try {
+                startActivityForResult(
+                    Intent(this, HuaweiAuthActivity::class.java), HW_AUTH_REQUEST
+                )
+            } catch (_: Exception) {
+                toast(getString(R.string.hw_error_generic, "no browser component"))
+            }
+        }
+
+        renderHuawei()
+    }
+
+    /**
+     * Four states, in the order they block each other: no credentials → not linked →
+     * expired → linked. "Linked as of" carries the last successful cloud round-trip,
+     * which is the only thing that proves the token still works.
+     */
+    private fun renderHuawei() {
+        val linked = HuaweiCloud.isLinked(this)
+        val hasCredentials = HuaweiCloud.hasCredentials(this)
+
+        btnHwLink.text = getString(
+            if (linked) R.string.hw_action_unlink else R.string.hw_action_link
+        )
+        btnHwLink.isEnabled = linked || hasCredentials
+        btnHwLink.alpha = if (btnHwLink.isEnabled) 1f else 0.45f
+
+        when {
+            !linked && !hasCredentials -> {
+                tvHwStatus.text = getString(R.string.hw_status_credentials)
+                tvHwStatus.setTextColor(COLOR_MUTED)
+            }
+
+            !linked -> {
+                tvHwStatus.text = getString(R.string.hw_status_not_linked)
+                tvHwStatus.setTextColor(COLOR_MUTED)
+            }
+
+            HuaweiCloud.isAuthBroken(this) -> {
+                tvHwStatus.text = getString(R.string.hw_status_expired)
+                tvHwStatus.setTextColor(COLOR_BAD)
+            }
+
+            else -> {
+                val at = HuaweiCloud.lastOkAt(this)
+                val stamp = if (at > 0L) {
+                    DateFormat.getTimeFormat(this).format(Date(at))
+                } else {
+                    "—"
+                }
+                tvHwStatus.text = getString(R.string.hw_status_linked, stamp)
+                tvHwStatus.setTextColor(COLOR_OK)
+            }
+        }
     }
 
     private fun bindHealthViews() {
@@ -391,19 +500,27 @@ class MainActivity : android.app.Activity() {
 
         tvHealthRhr.text = (summary?.restingBpm ?: summary?.avgBpm)
             ?.let { getString(R.string.health_value_bpm, it) } ?: none
+
+        // The cloud link has its own state machine; keep it in step with every
+        // summary that lands, since a successful read is what refreshes its stamp.
+        renderHuawei()
     }
 
     /** Refreshes the cached grant set, then re-renders and asks for a fresh summary. */
     private fun refreshHealthConnectState() {
+        // A linked Huawei cloud account produces a summary on its own, so it is
+        // reason enough to ask the service for a refresh even with no Health Connect.
+        val cloudLinked = HuaweiCloud.isLinked(this)
         if (!HealthConnectHub.isAvailable(this)) {
             hcGranted = emptySet()
             renderHealth()
+            if (cloudLinked) sendServiceAction(VitalsBridgeService.ACTION_REFRESH_HEALTH)
             return
         }
         uiScope.launch {
             hcGranted = HealthConnectHub.grantedPermissions(this@MainActivity)
             renderHealth()
-            if (hcGranted.containsAll(HealthConnectHub.READ_PERMISSIONS)) {
+            if (cloudLinked || hcGranted.containsAll(HealthConnectHub.READ_PERMISSIONS)) {
                 sendServiceAction(VitalsBridgeService.ACTION_REFRESH_HEALTH)
             }
         }
@@ -519,6 +636,20 @@ class MainActivity : android.app.Activity() {
     /** Pre-Android-14 grant flow: the provider-APK contract round-trip. */
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
+
+        if (requestCode == HW_AUTH_REQUEST) {
+            if (resultCode == RESULT_OK) {
+                toast(getString(R.string.hw_toast_linked))
+                // The service owns the readers; ask it for a summary now rather than
+                // waiting out the 5-minute tick.
+                sendServiceAction(VitalsBridgeService.ACTION_REFRESH_HEALTH)
+            }
+            // The auth activity already surfaced its own reason as a toast; the status
+            // line just re-reads whatever state it left behind.
+            renderHuawei()
+            return
+        }
+
         if (requestCode != HC_PERM_REQUEST) return
 
         val granted = try {

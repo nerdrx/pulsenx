@@ -29,9 +29,35 @@
     <!-- Toasts -->
     <string name="health_toast_source">Heart rate now comes from %1$s</string>
     <string name="health_toast_write_permission">Grant Health Connect write access to store heart rate</string>
-    <string name="health_toast_mirror_on">Mirroring Huawei data into Health Connect every 15 minutes</string>
+    <string name="health_toast_mirror_on">Mirroring Huawei data into Health Connect every 5 minutes</string>
     <string name="health_toast_mirror_off">Mirror sync stopped</string>
     <string name="health_toast_unavailable">Health Connect is not available on this phone</string>
+
+    <!-- Huawei Health Kit cloud link -->
+    <string name="hw_title">Huawei Cloud</string>
+    <string name="hw_caption">Pulls steps, sleep, SpO2 and heart rate straight from Huawei\'s
+        Health Kit cloud. Create a Web app on HUAWEI Developers, set the callback URL to
+        https://pulsenx.auth/callback, then paste its keys here.</string>
+    <string name="hw_hint_client_id">OAuth Client ID</string>
+    <string name="hw_hint_client_secret">OAuth Client secret</string>
+    <string name="hw_action_link">Link Huawei Account</string>
+    <string name="hw_action_unlink">Unlink</string>
+
+    <string name="hw_status_credentials">Paste your Client ID and secret to link</string>
+    <string name="hw_status_not_linked">Not linked</string>
+    <string name="hw_status_linked">Linked as of %1$s</string>
+    <string name="hw_status_expired">Auth expired — relink</string>
+
+    <!-- Consent WebView -->
+    <string name="hw_auth_title">Sign in with your Huawei ID</string>
+    <string name="hw_auth_exchanging">Completing sign-in…</string>
+    <string name="hw_error_no_credentials">Enter the OAuth Client ID and secret first</string>
+    <string name="hw_error_denied">Huawei sign-in was cancelled</string>
+    <string name="hw_error_generic">Huawei sign-in failed: %1$s</string>
+    <string name="hw_error_state">Sign-in rejected: the callback did not match this request</string>
+    <string name="hw_error_no_code">Huawei returned no authorization code</string>
+    <string name="hw_toast_linked">Huawei cloud linked ✓</string>
+    <string name="hw_toast_unlinked">Huawei cloud unlinked</string>
 
     <!-- Health card values -->
     <string name="health_value_none">—</string>

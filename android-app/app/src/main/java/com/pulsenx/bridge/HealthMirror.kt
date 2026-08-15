@@ -18,10 +18,15 @@ import androidx.health.connect.client.records.metadata.Metadata
 import androidx.health.connect.client.request.ChangesTokenRequest
 import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
+import androidx.health.connect.client.units.Energy
+import androidx.health.connect.client.units.Length
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.time.Duration
 import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import kotlin.reflect.KClass
 
 /**
@@ -162,6 +167,154 @@ object HealthMirror {
         } while (pageToken != null)
         return all
     }
+
+    // ==================================================================
+    // Huawei cloud → Health Connect (the "free Health Sync" half)
+    // ==================================================================
+
+    /**
+     * Writes the Huawei Health **cloud** daily aggregates into Health Connect under
+     * the PulseNX origin, so Google Fit and every other Health Connect reader finally
+     * see the watch's numbers on a GMS phone.
+     *
+     * Gated by the same [VitalsBridgeService.KEY_FIT_MIRROR] toggle as the on-device
+     * mirror — one switch, one promise: "publish Huawei's data under my origin".
+     *
+     * Idempotency: one record per (type, calendar day) keyed by
+     * `clientRecordId = "hwcloud-<type>-<yyyyMMdd>"`, with `clientRecordVersion` set
+     * to the fetch timestamp. Health Connect upserts on that pair, so the 5-minute
+     * cadence keeps rewriting *the same* four records with fresher totals instead of
+     * accumulating 288 partial ones a day.
+     *
+     * Loop safety: these carry the PulseNX origin, and [sync] only ever copies
+     * records whose origin is `com.huawei.health`, so they can never be re-mirrored.
+     * [HealthSummaryReader.merge] takes the larger of the two sources rather than the
+     * sum, so reading them straight back cannot inflate the summary either.
+     *
+     * @return the number of records written (0 when disabled / unpermitted / empty).
+     */
+    suspend fun writeHuaweiCloudDaily(context: Context, daily: HuaweiDaily): Int {
+        val prefs = prefsOf(context)
+        if (!prefs.getBoolean(VitalsBridgeService.KEY_FIT_MIRROR, false)) return 0
+        if (!HuaweiCloud.isLinked(context)) return 0
+
+        val client = HealthConnectHub.client(context) ?: return 0
+
+        val granted = HealthConnectHub.grantedPermissions(context)
+        if (!granted.containsAll(HealthConnectHub.WRITE_PERMISSIONS)) {
+            Log.d(TAG, "cloud write-back skipped, write permissions incomplete")
+            return 0
+        }
+
+        val zone = ZoneId.systemDefault()
+        val now = Instant.now()
+        val midnight = LocalDate.now(zone).atStartOfDay(zone).toInstant()
+        // Health Connect rejects zero-length interval records; a run in the first
+        // millisecond after midnight would otherwise throw.
+        val dayEnd = if (now.isAfter(midnight)) now else midnight.plusMillis(1)
+        val day = LocalDate.now(zone).format(DateTimeFormatter.ofPattern("yyyyMMdd"))
+        val version = daily.ts.coerceAtLeast(1L)
+
+        val records = ArrayList<Record>(4)
+
+        daily.steps?.takeIf { it > 0L }?.let { steps ->
+            records += StepsRecord(
+                startTime = midnight,
+                startZoneOffset = zone.rules.getOffset(midnight),
+                endTime = dayEnd,
+                endZoneOffset = zone.rules.getOffset(dayEnd),
+                count = steps,
+                metadata = cloudMetadata("steps", day, version)
+            )
+        }
+
+        daily.distanceKm?.takeIf { it > 0.0 }?.let { km ->
+            records += DistanceRecord(
+                startTime = midnight,
+                startZoneOffset = zone.rules.getOffset(midnight),
+                endTime = dayEnd,
+                endZoneOffset = zone.rules.getOffset(dayEnd),
+                distance = Length.kilometers(km),
+                metadata = cloudMetadata("distance", day, version)
+            )
+        }
+
+        // Huawei's cloud aggregate is explicitly *active* calories, so it is written
+        // as such; `totalKcal` is only ever non-null if a future source supplies it.
+        daily.activeKcal?.takeIf { it > 0.0 }?.let { kcal ->
+            records += ActiveCaloriesBurnedRecord(
+                startTime = midnight,
+                startZoneOffset = zone.rules.getOffset(midnight),
+                endTime = dayEnd,
+                endZoneOffset = zone.rules.getOffset(dayEnd),
+                energy = Energy.kilocalories(kcal),
+                metadata = cloudMetadata("activecalories", day, version)
+            )
+        }
+
+        daily.totalKcal?.takeIf { it > 0.0 }?.let { kcal ->
+            records += TotalCaloriesBurnedRecord(
+                startTime = midnight,
+                startZoneOffset = zone.rules.getOffset(midnight),
+                endTime = dayEnd,
+                endZoneOffset = zone.rules.getOffset(dayEnd),
+                energy = Energy.kilocalories(kcal),
+                metadata = cloudMetadata("totalcalories", day, version)
+            )
+        }
+
+        // Sleep only when the cloud gave a real interval. The daily *duration* alone
+        // cannot be written honestly — a SleepSessionRecord is a span, and inventing
+        // one would put a fictional night on the user's timeline.
+        val sleepStart = daily.sleepStartMs
+        val sleepEnd = daily.sleepEndMs
+        if (sleepStart != null && sleepEnd != null && sleepEnd > sleepStart) {
+            val start = Instant.ofEpochMilli(sleepStart)
+            val end = Instant.ofEpochMilli(sleepEnd)
+            records += SleepSessionRecord(
+                startTime = start,
+                startZoneOffset = zone.rules.getOffset(start),
+                endTime = end,
+                endZoneOffset = zone.rules.getOffset(end),
+                title = "Huawei Health",
+                notes = null,
+                stages = emptyList(),
+                // Keyed on the wake-up day, so a session is stable across the 5-minute
+                // re-reads that happen after it ended.
+                metadata = cloudMetadata(
+                    "sleep",
+                    end.atZone(zone).toLocalDate().format(DateTimeFormatter.ofPattern("yyyyMMdd")),
+                    version
+                )
+            )
+        } else if (daily.sleepMin != null) {
+            Log.d(TAG, "cloud sleep duration present but no usable interval, skipping the HC write")
+        }
+
+        if (records.isEmpty()) return 0
+
+        return try {
+            client.insertRecords(records)
+            Log.d(TAG, "cloud write-back upserted ${records.size} record(s) for $day")
+            records.size
+        } catch (e: Exception) {
+            Log.w(TAG, "cloud write-back failed: ${e.message}")
+            0
+        }
+    }
+
+    /**
+     * Cloud aggregates are machine-derived, never hand-entered, so the single
+     * [Metadata.autoRecorded] factory covers them — the four-way dispatch in
+     * [mirrorMetadata] exists only because *that* path has to preserve whatever
+     * recording method the source record carried.
+     */
+    private fun cloudMetadata(type: String, day: String, version: Long): Metadata =
+        Metadata.autoRecorded(
+            device = Device(type = Device.TYPE_WATCH),
+            clientRecordId = "hwcloud-$type-$day",
+            clientRecordVersion = version
+        )
 
     // ==================================================================
     // Mirroring

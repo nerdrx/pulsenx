@@ -425,6 +425,80 @@
                         style="@style/NxSwitch" />
                 </LinearLayout>
 
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginTop="16dp"
+                    android:background="@drawable/hairline_divider" />
+
+                <!-- Huawei Health Kit cloud link (OAuth, no HMS SDK) -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="@string/hw_title"
+                    style="@style/NxText.Eyebrow" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="@string/hw_caption"
+                    style="@style/NxText.Caption" />
+
+                <EditText
+                    android:id="@+id/etHwClientId"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:layout_marginTop="12dp"
+                    android:background="@drawable/field_glass"
+                    android:hint="@string/hw_hint_client_id"
+                    android:imeOptions="actionNext"
+                    android:importantForAutofill="no"
+                    android:inputType="textNoSuggestions"
+                    android:maxLines="1"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:textColor="@color/nx_text"
+                    android:textColorHint="@color/nx_dim"
+                    android:textCursorDrawable="@null"
+                    android:textSize="14sp" />
+
+                <EditText
+                    android:id="@+id/etHwClientSecret"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/field_glass"
+                    android:hint="@string/hw_hint_client_secret"
+                    android:imeOptions="actionDone"
+                    android:importantForAutofill="no"
+                    android:inputType="textPassword"
+                    android:maxLines="1"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:textColor="@color/nx_text"
+                    android:textColorHint="@color/nx_dim"
+                    android:textCursorDrawable="@null"
+                    android:textSize="14sp" />
+
+                <Button
+                    android:id="@+id/btnHwLink"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:layout_marginTop="10dp"
+                    android:minHeight="48dp"
+                    android:text="@string/hw_action_link"
+                    style="@style/NxPill.Secondary" />
+
+                <TextView
+                    android:id="@+id/tvHwStatus"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="@string/hw_status_not_linked"
+                    android:textSize="12sp" />
+
                 <!-- Mini stats -->
                 <LinearLayout
                     android:layout_width="match_parent"

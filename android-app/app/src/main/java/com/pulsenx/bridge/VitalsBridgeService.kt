@@ -506,19 +506,30 @@ class VitalsBridgeService : Service(), PcLink.Listener {
         }
     }
 
-    /** Reads the daily roll-up, caches it for the UI and optionally ships it to the PC. */
+    /**
+     * Reads the daily roll-up, caches it for the UI and optionally ships it to the PC.
+     *
+     * Two independent sources feed it: Health Connect (on-device) and the Huawei
+     * Health cloud. Either one alone is enough to produce a summary, so the guard
+     * only bails when *neither* can serve.
+     */
     private fun refreshHealthSummary(send: Boolean) {
-        if (!HealthConnectHub.isAvailable(applicationContext)) return
+        val cloudLinked = HuaweiCloud.isLinked(applicationContext)
+        val hcAvailable = HealthConnectHub.isAvailable(applicationContext)
+        if (!cloudLinked && !hcAvailable) return
+
         serviceScope.launch {
             try {
-                if (!HealthConnectHub.hasPermissions(
-                        applicationContext, HealthConnectHub.READ_PERMISSIONS
-                    )
-                ) {
+                val hcReadable = hcAvailable && HealthConnectHub.hasPermissions(
+                    applicationContext, HealthConnectHub.READ_PERMISSIONS
+                )
+                if (!hcReadable && !cloudLinked) {
                     Log.d(TAG, "health summary skipped, read permissions incomplete")
                     return@launch
                 }
-                val summary = HealthSummaryReader.read(applicationContext) ?: return@launch
+                val summary = HealthSummaryReader.readCombined(
+                    applicationContext, includeHealthConnect = hcReadable
+                ) ?: return@launch
                 BridgeEngine.lastHealthSummary = summary
                 if (send && pcLink.isConnected) {
                     pcLink.send(summary.toMessageJson())

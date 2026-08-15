@@ -121,6 +121,124 @@ Android app (`com.pulsenx.bridge`, minSdk 26, target/compile 34):
    up. Off by default.
 9. **Liquid Glass UI**: translucent blurred surfaces over an animated aurora canvas background
    (`ui/AuroraBackgroundView`, pure Canvas, no new dependencies), NX violet/cyan accents.
+10. **Huawei Health Kit cloud source**: OAuth-linked REST pull of the watch's daily data
+    straight from Huawei's cloud, merged into the daily summary and optionally written back
+    into Health Connect. See the section below.
+
+## Huawei Health Kit cloud source
+
+Huawei Health has no native Health Connect integration, so on a GMS phone the watch's steps,
+sleep and SpO2 never reach the on-device exchange layer at all. Huawei's Health Kit **cloud**
+REST API is the only sanctioned route to them, and it is plain HTTPS + OAuth 2.0 — no HMS Core,
+no HMS SDK, no Huawei service framework on the phone. This is PulseNX's free replacement for the
+paid "Health Sync" app.
+
+### Setup (per user, one time)
+
+The user registers a **Web** app on HUAWEI Developers, enables Health Service Kit, applies for
+the read scopes below, and sets the callback URL to exactly `https://pulsenx.auth/callback`.
+The app is parameterised entirely by the pasted **OAuth Client ID + Client Secret** (health card
+→ "Huawei Cloud"); nothing is baked into the APK. A test-phase app is capped at 100 beta users,
+which is ample for a single user (the cap surfaces as HTTP 403).
+
+### OAuth flow (`HuaweiCloud.kt`, `HuaweiAuthActivity.kt`)
+
+1. `HuaweiAuthActivity` loads
+   `https://oauth-login.cloud.huawei.com/oauth2/v3/authorize?response_type=code&client_id=…
+   &redirect_uri=https%3A%2F%2Fpulsenx.auth%2Fcallback&scope=…&state=…&access_type=offline&display=touch`
+   in an in-app WebView. `access_type=offline` is what makes the refresh token appear;
+   `state` is a random nonce checked on the way back.
+2. The redirect URI resolves to nothing on the public internet **by design**: the WebView client
+   kills the navigation the moment the URL starts with it and reads `?code=` out of it. Nothing
+   is ever sent to that host. `?error=access_denied` is the documented user-cancel path.
+3. `POST https://oauth-login.cloud.huawei.com/oauth2/v3/token`,
+   `grant_type=authorization_code&code&client_id&client_secret&redirect_uri` (form-encoded)
+   → `{access_token, expires_in, refresh_token, scope, token_type, id_token}`.
+4. Refresh: same endpoint, `grant_type=refresh_token&refresh_token&client_id&client_secret`.
+   Access token lives 1 h, refresh token 180 days. `refreshIfNeeded()` is single-flight (a
+   `Mutex`) and renews 2 min before the stated expiry.
+
+Tokens, credentials, the granted scope, the last-successful-call stamp and an "auth broken" flag
+all live in `SharedPreferences("PulseNXPrefs")` under `HW_*` keys. Unlinking drops the tokens and
+keeps the client id/secret.
+
+**Scopes** (`openid` is mandatory): `https://www.huawei.com/healthkit/` + `step.read`,
+`distance.read`, `calories.read`, `heartrate.read`, `oxygensaturation.read`, `sleep.read`.
+
+### Data endpoints (`HuaweiKitReader.kt`)
+
+Base host `https://health-api.cloud.huawei.com`. Every call carries
+`Authorization: Bearer <access_token>` (note the mandatory space), `Content-Type:
+application/json; charset=UTF-8` and the recommended `x-client-id` / `x-version` headers. A 401
+triggers exactly one forced refresh + replay; a 401 that survives it flags the link broken.
+403 means an unapproved scope (or the beta-user cap), not an expired token.
+
+- `POST /healthkit/v2/sampleSet:dailyPolymerize`
+  `{dataTypes:[…], startDay:"yyyyMMdd", endDay:"yyyyMMdd", timeZone:"+0200"}` →
+  `{group:[{startTime,endTime,sampleSet:[{dataCollectorId,samplePoints:[{startTime,endTime,
+  dataTypeName,value:[{fieldName,integerValue|floatValue|longValue}]}]}]}]}`.
+  Request days are calendar strings, group times are **ms**, sample-point times are **ns**.
+- `GET /healthkit/v2/healthRecords?startTime=<ns>&endTime=<ns>&dataType=com.huawei.health.record.sleep`
+  → `{healthRecords:[{startTime,endTime,dataTypeName,value:[…],id}]}` — sleep is a *health
+  record*, not a sampling type, so it does not come from the polymerize endpoint.
+
+| metric | requested (detail) type | returned (statistics) type | fields |
+|---|---|---|---|
+| steps | `com.huawei.continuous.steps.delta` | `com.huawei.continuous.steps.total` | `steps` |
+| distance | `com.huawei.continuous.distance.delta` | `com.huawei.continuous.distance.total` | `distance` (metres) |
+| active kcal | `com.huawei.continuous.calories.burnt` | `com.huawei.continuous.calories.burnt.total` | `calories_total` |
+| heart rate | `com.huawei.instantaneous.heart_rate` | `com.huawei.continuous.heart_rate.statistics` | `avg`, `max`, `min`, `last` |
+| resting HR | `com.huawei.instantaneous.resting_heart_rate` | `com.huawei.continuous.resting_heart_rate.statistics` | `avg`, `max`, `min`, `last` |
+| SpO2 | `com.huawei.instantaneous.spo2` | `com.huawei.continuous.spo2.statistics` | `saturation_avg/_max/_min/_last` |
+| sleep | `com.huawei.health.record.sleep` (health record) | — | `all_sleep_time` (min), `fall_asleep_time`/`wakeup_time` (ms) |
+
+Steps + distance + calories go out as one batched call (one scope group); if the batch fails
+each type is retried alone, so one unapproved scope cannot take the other two down. Heart rate,
+resting HR, SpO2 and sleep each get their own call for the same reason. Huawei's calorie
+aggregate is explicitly *active* calories, so `totalKcal` is never sourced from the cloud.
+
+### Merge rules (`HealthSummaryReader.merge`, pure function)
+
+Either source alone produces a valid summary; when both are present:
+
+| field | rule |
+|---|---|
+| `steps`, `distanceKm`, `activeKcal`, `totalKcal`, `sleepMin` | the **larger** of the two |
+| `minBpm` / `maxBpm` | true min / max across both |
+| `avgBpm`, `restingBpm`, `spo2Pct` | Health Connect wins, Huawei fills the gap |
+
+*Larger, not sum*: Health Connect sees the phone's own pedometer (and, with the mirror on,
+PulseNX's own copies of these very cloud aggregates), while Huawei's cloud sees the watch.
+Summing double-counts the overlap outright; a maximum cannot — worst case it under-reports,
+which is the honest failure direction for a health readout.
+
+`summary.source` becomes `"huawei"` as soon as any cloud value survives into the result, which
+is exactly what the PC's `via Huawei Health` chip already means.
+
+### Health Connect write-back (`HealthMirror.writeHuaweiCloudDaily`)
+
+Gated by the existing `FIT_MIRROR_ENABLED` toggle **and** a linked cloud account — one switch,
+one promise: "publish Huawei's data under my origin". Writes `StepsRecord`, `DistanceRecord`,
+`ActiveCaloriesBurnedRecord` (local midnight → now) and, only when the cloud supplied a real
+`fall_asleep_time`/`wakeup_time` interval, a `SleepSessionRecord`. A bare sleep *duration* is
+never written, because a session record is a span and inventing one would put a fictional night
+on the user's timeline.
+
+Idempotency: `clientRecordId = "hwcloud-<type>-<yyyyMMdd>"`, `clientRecordVersion` = the fetch
+epoch-ms, so the 5-minute cadence upserts the same four records with fresher totals instead of
+accumulating 288 partial ones a day. Loop safety: these carry the PulseNX origin and the
+on-device mirror only ever copies `com.huawei.health`-origin records, so they can never be
+re-mirrored; and the merge takes a maximum, so reading them straight back cannot inflate the
+summary either.
+
+### Cadence and failure surface
+
+The cloud read rides the existing 5-minute health-summary tick in `VitalsBridgeService` (plus
+the link-up push and the on-demand `REFRESH_HEALTH` action) — no new timer. Every request and
+response shape is logged at `Log.d` under the `PulseNX/HuaweiCloud` and `PulseNX/HuaweiKit`
+tags (token bodies are logged by key names only, never by value). The health card's Huawei
+status line shows exactly one of: *Paste your Client ID and secret to link* / *Not linked* /
+*Linked as of HH:MM* (the last successful cloud round-trip) / *Auth expired — relink*.
 
 ## Known bugs in the old code — must be FIXED, not ported
 

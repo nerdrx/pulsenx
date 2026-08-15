@@ -82,9 +82,124 @@ data class HealthSummary(
 object HealthSummaryReader {
 
     private const val TAG = "PulseNX/HealthSum"
+
+    /** The two values the protocol's `summary.source` field may carry. */
+    const val SOURCE_HUAWEI = "huawei"
+    const val SOURCE_HEALTH_CONNECT = "healthconnect"
+
     private const val SLEEP_WINDOW_HOURS = 24L
     /** Sleep sessions can start well before the window; widen the read, filter after. */
     private const val SLEEP_LOOKBACK_HOURS = 48L
+
+    /**
+     * The summary the bridge actually ships: Health Connect, plus the Huawei Health
+     * **cloud** roll-up when that account is linked.
+     *
+     * Order matters only for the write-back: the cloud read happens first so its
+     * aggregates can be mirrored into Health Connect (when the mirror toggle is on)
+     * before anything is sent to the PC.
+     *
+     * @param includeHealthConnect false when the caller already knows Health Connect
+     *        is missing or unpermitted — the cloud alone still makes a valid summary.
+     */
+    suspend fun readCombined(context: Context, includeHealthConnect: Boolean = true): HealthSummary? {
+        val huawei = try {
+            HuaweiKitReader.readDaily(context)
+        } catch (e: Exception) {
+            Log.w(TAG, "Huawei cloud read failed: ${e.message}")
+            null
+        }
+
+        if (huawei != null) {
+            try {
+                HealthMirror.writeHuaweiCloudDaily(context, huawei)
+            } catch (e: Exception) {
+                Log.w(TAG, "Huawei cloud write-back failed: ${e.message}")
+            }
+        }
+
+        val healthConnect = if (!includeHealthConnect) null else try {
+            read(context)
+        } catch (e: Exception) {
+            Log.w(TAG, "Health Connect read failed: ${e.message}")
+            null
+        }
+
+        return merge(healthConnect, huawei)
+    }
+
+    /**
+     * Pure merge of the two sources. Neither is a superset of the other, so:
+     *
+     * | field                       | rule |
+     * |-----------------------------|------|
+     * | steps, distance, kcal, sleep | the LARGER of the two |
+     * | minBpm / maxBpm              | the true min / max across both |
+     * | avgBpm                       | Health Connect wins (averages cannot be combined) |
+     * | restingBpm, spo2Pct          | Health Connect wins, Huawei fills the gap |
+     *
+     * Why *larger* and not a sum for the cumulative totals: on a GMS phone Health
+     * Connect sees the phone's own pedometer (and, when the mirror is on, PulseNX's
+     * own copies of these very cloud aggregates), while Huawei's cloud sees the
+     * watch. Summing would double-count the overlap outright; taking the maximum
+     * cannot — worst case it under-reports by whatever one source saw and the other
+     * did not, which is the honest failure direction for a health readout.
+     *
+     * [HealthSummary.source] becomes "huawei" as soon as any cloud value survived
+     * into the result, which is exactly what the PC's `via Huawei Health` chip means.
+     */
+    fun merge(hc: HealthSummary?, hw: HuaweiDaily?): HealthSummary? {
+        if (hw == null || !hw.hasAnyValue) return hc
+        if (hc == null) {
+            return HealthSummary(
+                ts = hw.ts,
+                steps = hw.steps,
+                distanceKm = hw.distanceKm,
+                activeKcal = hw.activeKcal,
+                totalKcal = hw.totalKcal,
+                sleepMin = hw.sleepMin,
+                restingBpm = hw.restingBpm,
+                minBpm = hw.minBpm,
+                avgBpm = hw.avgBpm,
+                maxBpm = hw.maxBpm,
+                spo2Pct = hw.spo2Pct,
+                source = SOURCE_HUAWEI
+            )
+        }
+
+        var cloudContributed = false
+        fun <T : Comparable<T>> larger(a: T?, b: T?): T? = when {
+            a == null -> b?.also { cloudContributed = true }
+            b == null -> a
+            b > a -> b.also { cloudContributed = true }
+            else -> a
+        }
+
+        fun <T : Comparable<T>> smaller(a: T?, b: T?): T? = when {
+            a == null -> b?.also { cloudContributed = true }
+            b == null -> a
+            b < a -> b.also { cloudContributed = true }
+            else -> a
+        }
+
+        fun <T> fillGap(a: T?, b: T?): T? = a ?: b?.also { cloudContributed = true }
+
+        val merged = HealthSummary(
+            ts = System.currentTimeMillis(),
+            steps = larger(hc.steps, hw.steps),
+            distanceKm = larger(hc.distanceKm, hw.distanceKm),
+            activeKcal = larger(hc.activeKcal, hw.activeKcal),
+            totalKcal = larger(hc.totalKcal, hw.totalKcal),
+            sleepMin = larger(hc.sleepMin, hw.sleepMin),
+            restingBpm = fillGap(hc.restingBpm, hw.restingBpm),
+            minBpm = smaller(hc.minBpm, hw.minBpm),
+            avgBpm = fillGap(hc.avgBpm, hw.avgBpm),
+            maxBpm = larger(hc.maxBpm, hw.maxBpm),
+            spo2Pct = fillGap(hc.spo2Pct, hw.spo2Pct),
+            source = hc.source
+        )
+        return if (cloudContributed) merged.copy(source = SOURCE_HUAWEI) else merged
+    }
 
     suspend fun read(context: Context): HealthSummary? {
         val client = HealthConnectHub.client(context) ?: return null
@@ -136,9 +251,9 @@ object HealthSummaryReader {
             ?.percentage?.value?.round(1)
 
         val source = if (origins.any { it.contains("huawei", ignoreCase = true) }) {
-            "huawei"
+            SOURCE_HUAWEI
         } else {
-            "healthconnect"
+            SOURCE_HEALTH_CONNECT
         }
 
         return HealthSummary(
