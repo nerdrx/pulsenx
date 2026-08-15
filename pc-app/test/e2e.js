@@ -4,12 +4,16 @@
  *
  * Launches the real Electron app and verifies the whole pipeline:
  *
- *   ws://127.0.0.1:9000 (tcp)  ->  main process  ->  renderer IPC
+ *   ws://127.0.0.1:19000 (tcp) ->  main process  ->  renderer IPC
  *                              ->  ws broadcast  ->  OBS browser source
- *                              ->  OSC           ->  127.0.0.1:9000 (udp)
+ *                              ->  OSC           ->  127.0.0.1:19100 (udp)
  *
- * The two port 9000 bindings do not collide: the link server is TCP, the OSC
- * target is UDP.
+ * Every port the app touches is moved into the test range: the listeners via
+ * PULSENX_PORT_* (see APP_ENV) and the outbound OSC client via a pre-seeded
+ * settings.json in the throwaway user-data dir (see SEED_SETTINGS). Without that
+ * last one a real PulseNX running on the developer's desktop streams into this
+ * harness's OSC listener and every OSC assertion reads its traffic instead of
+ * ours.
  *
  * Usage:
  *   npm run test:e2e
@@ -18,6 +22,10 @@
  * The app runs against a throwaway --user-data-dir, so the developer's own
  * settings are never read or overwritten, and Discord Rich Presence is
  * suppressed in --e2e-hooks mode so the test cannot hijack a real presence.
+ *
+ * Every listening port is pushed into the 19xxx range via PULSENX_PORT_*, and
+ * the discovery beacon is switched off, so the test instance neither fights the
+ * user's real PulseNX for :9000/:9005 nor advertises itself to their phone.
  */
 
 'use strict';
@@ -35,10 +43,28 @@ const osc = require('node-osc');
 // -------------------------------------------------------------------------
 // Test parameters
 // -------------------------------------------------------------------------
-const LINK_WS_URL = 'ws://127.0.0.1:9000';
-const OSC_UDP_PORT = 9000;
-const HOOKS_PORT = 9010;
-const OBS_PORT = 9005;
+// Offset ports: a production instance may well own the defaults right now.
+const WS_PORT = 19000;
+const OBS_PORT = 19005;
+const HOOKS_PORT = 19010;
+const LINK_WS_URL = `ws://127.0.0.1:${WS_PORT}`;
+
+// The OSC target is an outbound client, i.e. a normal user setting rather than a
+// listening port — so it is moved with a setting, not an env override.
+const OSC_UDP_PORT = 19100;
+
+const APP_ENV = {
+  PULSENX_PORT_WS: String(WS_PORT),
+  PULSENX_PORT_OBS: String(OBS_PORT),
+  PULSENX_PORT_E2E: String(HOOKS_PORT),
+  PULSENX_NO_BEACON: '1'
+};
+
+// Dropped into <user-data-dir>/settings.json before launch. SettingsStore.load()
+// merges the file over the defaults field by field (src/main/settings.js), so a
+// one-key patch moves the OSC target and leaves every other default exactly as a
+// fresh install would have it — no app code, no production behaviour changed.
+const SEED_SETTINGS = { osc: { port: OSC_UDP_PORT } };
 
 const TEST_BPM = 96;                 // 96 bpm -> one beat every 625 ms
 const TEST_RR = Math.round(60000 / TEST_BPM);
@@ -113,6 +139,14 @@ function launchApp() {
   const { cmd, prefixArgs } = resolveElectronCommand();
   userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pulsenx-e2e-'));
 
+  // --user-data-dir is what app.getPath('userData') resolves to, so this is the
+  // exact file the settings store reads on boot.
+  fs.writeFileSync(
+    path.join(userDataDir, 'settings.json'),
+    JSON.stringify(SEED_SETTINGS, null, 2),
+    'utf8'
+  );
+
   const args = [
     ...prefixArgs,
     APP_DIR,
@@ -127,7 +161,12 @@ function launchApp() {
 
   // detached puts the app in its own process group so the whole tree
   // (xvfb-run -> Xvfb -> electron -> zygotes) dies with a single group kill.
-  child = spawn(cmd, args, { cwd: APP_DIR, detached: true, stdio: ['ignore', 'pipe', 'pipe'] });
+  child = spawn(cmd, args, {
+    cwd: APP_DIR,
+    detached: true,
+    stdio: ['ignore', 'pipe', 'pipe'],
+    env: { ...process.env, ...APP_ENV }
+  });
 
   const record = (buf) => {
     buf.toString().split(/\r?\n/).filter(Boolean).forEach((line) => appOutput.push(line));
@@ -317,7 +356,9 @@ function assertNoRuntimeErrors() {
 async function run() {
   console.log('PulseNX end-to-end test\n');
 
-  // 1. OSC listener first, so nothing emitted during boot is missed.
+  // 1. OSC listener first, so nothing emitted during boot is missed. It binds
+  // the seeded test port, so a production instance streaming to :9000 cannot be
+  // mistaken for this run's traffic.
   oscServer = new osc.Server(OSC_UDP_PORT, '127.0.0.1');
   oscServer.on('message', (msg) => {
     oscMessages.push({ t: Date.now(), address: msg[0], args: msg.slice(1) });
@@ -330,8 +371,17 @@ async function run() {
   await waitForLogLine(/LAN WebSocket server listening/, BOOT_TIMEOUT_MS);
   await waitForLogLine(/E2E test hooks listening/, BOOT_TIMEOUT_MS);
   await waitForLogLine(/OBS browser-source server listening/, BOOT_TIMEOUT_MS);
-  await waitForLogLine(/Discovery beacon broadcasting/, BOOT_TIMEOUT_MS);
+  // PULSENX_NO_BEACON=1 keeps the test instance off the user's LAN.
+  await waitForLogLine(/Discovery beacon disabled/, BOOT_TIMEOUT_MS);
   console.log('All servers report ready');
+
+  check(
+    'Every server honoured the PULSENX_PORT_* overrides',
+    appOutput.some((l) => l.includes(`ws://0.0.0.0:${WS_PORT}`))
+      && appOutput.some((l) => l.includes(`http://localhost:${OBS_PORT}`))
+      && appOutput.some((l) => l.includes(`http://127.0.0.1:${HOOKS_PORT}`)),
+    ''
+  );
 
   // 3. Nothing may be broadcast before a phone links.
   await sleep(1500);
@@ -343,7 +393,12 @@ async function run() {
 
   // 4. The OBS widget page must be self-contained (an OBS box is often offline).
   const widget = await getText(OBS_PORT, '/');
-  check('OBS widget page is served on :9005', /PulseNX/.test(widget), '');
+  check(`OBS widget page is served on :${OBS_PORT}`, /PulseNX/.test(widget), '');
+  check(
+    'OBS widget page dials back to the configured LAN hub port',
+    widget.includes(`':${WS_PORT}'`),
+    ''
+  );
   check(
     'OBS widget page pulls in no external resources',
     !/https?:\/\/(?!localhost|127\.0\.0\.1)/i.test(widget),
@@ -392,6 +447,14 @@ async function run() {
     ''
   );
 
+  // If this one fails, the pre-seeded settings.json did not reach the app and
+  // every OSC assertion below is measuring an empty port rather than a bug.
+  check(
+    `OSC reaches the seeded test target on udp/${OSC_UDP_PORT} (settings isolation held)`,
+    oscMessages.some((m) => m.address.startsWith('/avatar/parameters/')),
+    `${oscMessages.length} message(s) received`
+  );
+
   // 8. The synthetic injection route feeds the same pipeline.
   const injected = await probe('/inject?bpm=123&rr=488');
   check('/inject feeds a synthetic sample through the real pipeline', injected.ok === true, '');
@@ -413,8 +476,64 @@ async function run() {
   check('DOM: stat-avg-bpm accumulates', !!live.avgBpm && live.avgBpm !== '-', `read "${live.avgBpm}"`);
   check('DOM: zone distribution is driven', !!live.zoneWarmupPct, `read "${live.zoneWarmupPct}"`);
   check('DOM: record button unlocks once a phone is linked', live.recordStartEnabled === true, '');
+  check(
+    'DOM: Daily Health card holds its placeholder state until a summary arrives',
+    live.healthSteps === '--' && live.healthSleep === '--' && live.healthUpdated === 'updated --:--',
+    `steps "${live.healthSteps}", sleep "${live.healthSleep}", stamp "${live.healthUpdated}"`
+  );
 
-  // 10. Session recorder.
+  // 10. Daily health summary. It rides the same producer socket as vitals, so
+  // this is exactly what the phone sends every 5 minutes.
+  const healthTs = new Date(2026, 0, 5, 8, 30, 0).getTime();  // local -> "08:30"
+  phoneSocket.send(JSON.stringify({
+    type: 'health',
+    ts: healthTs,
+    summary: {
+      steps: 8421, distanceKm: 6.24, activeKcal: 412.5, totalKcal: 1980.0,
+      sleepMin: 432, restingBpm: 58, minBpm: 52, avgBpm: 74, maxBpm: 141,
+      spo2Pct: 97.0, source: 'huawei'
+    }
+  }));
+  await sleep(750);
+
+  const health = await probe('/dom');
+  check('DOM: Daily Health steps/distance render the pushed summary',
+    health.healthSteps === '8421' && health.healthDistance === '6.2',
+    `steps "${health.healthSteps}", distance "${health.healthDistance}"`);
+  check('DOM: Daily Health energy fields render to one decimal',
+    health.healthActiveKcal === '412.5' && health.healthTotalKcal === '1980.0',
+    `active "${health.healthActiveKcal}", total "${health.healthTotalKcal}"`);
+  check('DOM: Daily Health renders sleep minutes as hours and minutes',
+    health.healthSleep === '7 h 12 m', `read "${health.healthSleep}"`);
+  check('DOM: Daily Health resting HR and today\'s BPM range are populated',
+    health.healthRestingBpm === '58' && health.healthMinBpm === '52'
+      && health.healthAvgBpm === '74' && health.healthMaxBpm === '141',
+    `${health.healthRestingBpm}/${health.healthMinBpm}/${health.healthAvgBpm}/${health.healthMaxBpm}`);
+  check('DOM: Daily Health SpO2 is populated', health.healthSpo2 === '97.0', `read "${health.healthSpo2}"`);
+  check('DOM: Daily Health credits the Huawei Health origin',
+    health.healthSource === 'via Huawei Health', `read "${health.healthSource}"`);
+  check('DOM: Daily Health stamps the summary time',
+    health.healthUpdated === 'updated 08:30', `read "${health.healthUpdated}"`);
+  check('DOM: a health summary leaves the live vitals readout untouched',
+    health.bpm === String(TEST_BPM), `read "${health.bpm}"`);
+
+  // A null field must read as a placeholder, not as zero.
+  phoneSocket.send(JSON.stringify({
+    type: 'health',
+    ts: healthTs,
+    summary: { steps: 9000, distanceKm: null, sleepMin: null, spo2Pct: null, source: 'healthconnect' }
+  }));
+  await sleep(750);
+
+  const sparse = await probe('/dom');
+  check('DOM: unknown Daily Health fields fall back to placeholders',
+    sparse.healthSteps === '9000' && sparse.healthDistance === '--'
+      && sparse.healthSleep === '--' && sparse.healthSpo2 === '--',
+    `steps "${sparse.healthSteps}", distance "${sparse.healthDistance}", sleep "${sparse.healthSleep}", spo2 "${sparse.healthSpo2}"`);
+  check('DOM: the source chip falls back to plain Health Connect',
+    sparse.healthSource === 'via Health Connect', `read "${sparse.healthSource}"`);
+
+  // 11. Session recorder.
   const started = await probe('/action/record-start');
   check('DOM: Start Recording is clickable', started.ok === true, '');
   await sleep(1500);
@@ -432,7 +551,7 @@ async function run() {
   check('DOM: rec-indicator clears when recording stops', stopped.recording === false, '');
   check('DOM: CSV export unlocks after a recorded session', stopped.exportEnabled === true, '');
 
-  // 11. Steady-state OSC window.
+  // 12. Steady-state OSC window.
   const elapsed = Date.now() - streamStart;
   if (elapsed < STREAM_DURATION_MS) await sleep(STREAM_DURATION_MS - elapsed);
   clearInterval(pump);
@@ -440,7 +559,7 @@ async function run() {
 
   assertOscTraffic(streamStart + SETTLE_MS, streamEnd);
 
-  // 12. Disconnecting the phone must silence every OSC producer.
+  // 13. Disconnecting the phone must silence every OSC producer.
   phoneSocket.close();
   await sleep(2500);
   assertOscSilenceAfterDisconnect(Date.now() - 1500);
@@ -484,7 +603,7 @@ async function main() {
   process.exit(exitCode);
 }
 
-// Never leave an Electron process holding port 9000.
+// Never leave an Electron process holding the test ports.
 for (const signal of ['SIGINT', 'SIGTERM']) {
   process.on(signal, () => {
     killAppSync();

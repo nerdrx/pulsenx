@@ -8,14 +8,18 @@
  * build's Google-Fonts link left the widget rendering in a fallback face.
  *
  * The page subscribes to the LAN WebSocket hub on :9000, where main broadcasts
- * processed vitals to every consumer socket.
+ * processed vitals to every consumer socket. Both ports are overridable (a test
+ * instance must be able to run beside a production one), so the page is
+ * rendered per server rather than kept as one frozen string.
  */
 
 const http = require('http');
 
 const OBS_PORT = 9005;
+const DEFAULT_WS_PORT = 9000;
 
-const WIDGET_HTML = `<!DOCTYPE html>
+function widgetHtml(wsPort) {
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -136,7 +140,7 @@ const WIDGET_HTML = `<!DOCTYPE html>
 
   function connect() {
     try {
-      socket = new WebSocket('ws://' + (location.hostname || '127.0.0.1') + ':9000');
+      socket = new WebSocket('ws://' + (location.hostname || '127.0.0.1') + ':${wsPort}');
     } catch (e) {
       setTimeout(connect, 3000);
       return;
@@ -154,10 +158,17 @@ const WIDGET_HTML = `<!DOCTYPE html>
 </script>
 </body>
 </html>`;
+}
+
+// The page as served by a default-configured app; kept as a named export so
+// tooling can inspect it without standing a server up.
+const WIDGET_HTML = widgetHtml(DEFAULT_WS_PORT);
 
 class ObsServer {
   constructor(options = {}) {
     this.port = options.port || OBS_PORT;
+    this.wsPort = options.wsPort || DEFAULT_WS_PORT;
+    this.html = widgetHtml(this.wsPort);
     this.server = null;
   }
 
@@ -175,7 +186,7 @@ class ObsServer {
         'Content-Type': 'text/html; charset=utf-8',
         'Cache-Control': 'no-store'
       });
-      res.end(WIDGET_HTML);
+      res.end(this.html);
     });
 
     // A busy port must degrade to "no OBS source", never to a crashed app.
@@ -201,4 +212,4 @@ class ObsServer {
   }
 }
 
-module.exports = { ObsServer, OBS_PORT, WIDGET_HTML };
+module.exports = { ObsServer, OBS_PORT, DEFAULT_WS_PORT, WIDGET_HTML, widgetHtml };

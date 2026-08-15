@@ -45,6 +45,77 @@ function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
 
+// ---------------------------------------------------------------------------
+// Health Connect daily summary
+// ---------------------------------------------------------------------------
+// Stricter than num(): a daily summary is a set of independent measurements and
+// every one of them may legitimately be "unknown". Number(true) is 1 and
+// Number('') is 0, so booleans and blanks must be rejected outright rather than
+// silently becoming a step count; a negative quantity is a bad read, not a
+// reading.
+function healthNumber(value) {
+  if (value === null || value === undefined || value === '') return null;
+  if (typeof value !== 'number' && typeof value !== 'string') return null;
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < 0) return null;
+  return n;
+}
+
+/** Whole-unit summary field (steps, minutes, BPM). */
+function healthInt(value) {
+  const n = healthNumber(value);
+  return n === null ? null : Math.round(n);
+}
+
+/** One-decimal summary field (km, kcal, percent). */
+function healthDecimal(value) {
+  const n = healthNumber(value);
+  return n === null ? null : Math.round(n * 10) / 10;
+}
+
+/**
+ * Normalises a `{type:'health', ts, summary:{…}}` daily-summary message from the
+ * phone (see SPEC.md "Health summary message").
+ *
+ * PURE. Every summary field is validated on its own, so one garbage number never
+ * discards the rest of the day; a field that is absent, null or not a number
+ * comes back as null. Returns null for anything that is not a usable health
+ * message at all.
+ *
+ * @param {*} raw       parsed message from the LAN or cloud transport
+ * @param {number} [nowArg] fallback clock for a message with no usable `ts`
+ * @returns {?object} `{ts, steps, distanceKm, activeKcal, totalKcal, sleepMin,
+ *                      restingBpm, minBpm, avgBpm, maxBpm, spo2Pct, source}`
+ */
+function normalizeHealth(raw, nowArg) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  if (raw.type !== 'health') return null;
+
+  const summary = raw.summary;
+  if (!summary || typeof summary !== 'object' || Array.isArray(summary)) return null;
+
+  const ts = healthInt(raw.ts);
+  const source = String(summary.source === undefined || summary.source === null ? '' : summary.source)
+    .trim()
+    .toLowerCase();
+
+  return {
+    ts: ts === null ? Math.round(num(nowArg, Date.now())) : ts,
+    steps: healthInt(summary.steps),
+    distanceKm: healthDecimal(summary.distanceKm),
+    activeKcal: healthDecimal(summary.activeKcal),
+    totalKcal: healthDecimal(summary.totalKcal),
+    sleepMin: healthInt(summary.sleepMin),
+    restingBpm: healthInt(summary.restingBpm),
+    minBpm: healthInt(summary.minBpm),
+    avgBpm: healthInt(summary.avgBpm),
+    maxBpm: healthInt(summary.maxBpm),
+    spo2Pct: healthDecimal(summary.spo2Pct),
+    // Anything that is not an explicit Huawei origin is plain Health Connect.
+    source: source === 'huawei' ? 'huawei' : 'healthconnect'
+  };
+}
+
 /** Training zone for a heart rate, as a share of the user's max HR. */
 function zoneFor(bpm, maxHr) {
   const max = num(maxHr, DEFAULT_PROFILE.maxHr) > 0 ? num(maxHr, DEFAULT_PROFILE.maxHr) : DEFAULT_PROFILE.maxHr;
@@ -475,6 +546,7 @@ module.exports = {
   LIVE_TIMEOUT_MS,
   DEFAULT_PROFILE,
   zoneFor,
+  normalizeHealth,
   rmssd,
   kcalPerMinute,
   stressIndex,
