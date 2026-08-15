@@ -418,6 +418,17 @@ class MainActivity : android.app.Activity() {
     }
 
     private fun openHealthConnectListing() {
+        // On Android 14+ Health Connect is a platform module: there is no Play listing to
+        // open, so the only useful destination is its Settings screen.
+        if (HealthConnectHub.isPlatformProvider) {
+            try {
+                startActivity(HealthConnectHub.settingsIntent())
+                return
+            } catch (_: Exception) {
+                toast(getString(R.string.health_toast_unavailable))
+                return
+            }
+        }
         try {
             startActivity(HealthConnectHub.installIntent())
         } catch (_: Exception) {

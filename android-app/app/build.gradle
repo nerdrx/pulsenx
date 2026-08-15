@@ -9,7 +9,10 @@ if (keystorePropsFile.exists()) {
 
 android {
     namespace 'com.pulsenx.bridge'
-    compileSdk 34
+    // 36, not 35: connect-client 1.1.0 ships AAR metadata demanding compileSdk >= 36 and
+    // the build fails outright below it. minSdk/targetSdk are deliberately untouched —
+    // compileSdk only decides which APIs are on the classpath, not runtime behaviour.
+    compileSdk 36
 
     defaultConfig {
         applicationId "com.pulsenx.bridge"
@@ -19,8 +22,8 @@ android {
         // reject the install otherwise. Android gates upgrades on versionCode,
         // not versionName, so walking the name back to match the suite version
         // (pc-app/package.json) is safe.
-        versionCode 4
-        versionName "1.1.0"
+        versionCode 5
+        versionName "1.1.1"
     }
 
     signingConfigs {
@@ -79,8 +82,10 @@ dependencies {
     // Health Connect is the sanctioned health-data exchange layer on Android:
     // Google Fit's third-party APIs are closed to new integrations, so everything
     // (Huawei Health included) is read from / written to Health Connect instead.
-    // 1.1.0-alpha07 is the newest release that still compiles against compileSdk 34.
-    implementation 'androidx.health.connect:connect-client:1.1.0-alpha07'
+    // 1.1.0 stable is required on Android 14+: Health Connect moved into the platform
+    // there (no com.google.android.apps.healthdata APK), and only the stable client's
+    // no-provider-package overloads route availability checks to the platform module.
+    implementation 'androidx.health.connect:connect-client:1.1.0'
 
     // The Health Connect client is coroutine-only; WorkManager drives the mirror sync.
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1'

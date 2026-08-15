@@ -13,6 +13,7 @@ import androidx.health.connect.client.records.SleepSessionRecord
 import androidx.health.connect.client.records.StepsRecord
 import androidx.health.connect.client.records.TotalCaloriesBurnedRecord
 import androidx.health.connect.client.records.metadata.DataOrigin
+import androidx.health.connect.client.records.metadata.Device
 import androidx.health.connect.client.records.metadata.Metadata
 import androidx.health.connect.client.request.ChangesTokenRequest
 import androidx.health.connect.client.request.ReadRecordsRequest
@@ -229,15 +230,54 @@ class HealthSyncWorker(
         return written
     }
 
-    /** `clientRecordId` keys the upsert; a missing source id makes the record unmirrorable. */
+    /**
+     * `clientRecordId` keys the upsert; a missing source id makes the record unmirrorable.
+     *
+     * connect-client 1.1.0 made the `Metadata(...)` constructor `internal` and split it
+     * into one factory per recording method, so the source's `recordingMethod` now selects
+     * the factory instead of being passed as a field. The id and version strings are
+     * byte-for-byte what the old constructor produced — mirrors already on users' phones
+     * must keep upserting rather than duplicating.
+     *
+     * Two traps in the factory API, both defused by naming every argument:
+     *  - the parameter ORDER differs between families. `autoRecorded`/`activelyRecorded`
+     *    are `(device, clientRecordId, clientRecordVersion)`, while `manualEntry`/
+     *    `unknownRecordingMethod` are `(clientRecordId, clientRecordVersion, device)`.
+     *  - `autoRecorded`/`activelyRecorded` require a NON-NULL device, unlike the other two.
+     *    Huawei records normally carry one; when they do not, TYPE_UNKNOWN stands in so the
+     *    recording method still survives the round trip.
+     */
     private fun mirrorMetadata(tag: String, source: Metadata): Metadata? {
         if (source.id.isEmpty()) return null
-        return Metadata(
-            clientRecordId = "mirror-$tag-${source.id}",
-            clientRecordVersion = source.lastModifiedTime.toEpochMilli().coerceAtLeast(1L),
-            device = source.device,
-            recordingMethod = source.recordingMethod
-        )
+        val clientRecordId = "mirror-$tag-${source.id}"
+        val clientRecordVersion = source.lastModifiedTime.toEpochMilli().coerceAtLeast(1L)
+        val device = source.device ?: Device(type = Device.TYPE_UNKNOWN)
+
+        return when (source.recordingMethod) {
+            Metadata.RECORDING_METHOD_AUTOMATICALLY_RECORDED -> Metadata.autoRecorded(
+                device = device,
+                clientRecordId = clientRecordId,
+                clientRecordVersion = clientRecordVersion
+            )
+
+            Metadata.RECORDING_METHOD_ACTIVELY_RECORDED -> Metadata.activelyRecorded(
+                device = device,
+                clientRecordId = clientRecordId,
+                clientRecordVersion = clientRecordVersion
+            )
+
+            Metadata.RECORDING_METHOD_MANUAL_ENTRY -> Metadata.manualEntry(
+                clientRecordId = clientRecordId,
+                clientRecordVersion = clientRecordVersion,
+                device = source.device
+            )
+
+            else -> Metadata.unknownRecordingMethod(
+                clientRecordId = clientRecordId,
+                clientRecordVersion = clientRecordVersion,
+                device = source.device
+            )
+        }
     }
 
     private fun clone(record: Record): Record? = try {

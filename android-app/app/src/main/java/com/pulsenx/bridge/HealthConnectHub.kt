@@ -3,6 +3,7 @@ package com.pulsenx.bridge
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.util.Log
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.permission.HealthPermission
@@ -16,6 +17,7 @@ import androidx.health.connect.client.records.RestingHeartRateRecord
 import androidx.health.connect.client.records.SleepSessionRecord
 import androidx.health.connect.client.records.StepsRecord
 import androidx.health.connect.client.records.TotalCaloriesBurnedRecord
+import androidx.health.connect.client.records.metadata.Device
 import androidx.health.connect.client.records.metadata.Metadata
 import java.time.Instant
 import java.time.ZoneId
@@ -34,7 +36,12 @@ object HealthConnectHub {
 
     private const val TAG = "PulseNX/HealthHub"
 
-    /** The Health Connect provider app (pre-Android 14 it is a normal Play Store app). */
+    /**
+     * The Health Connect provider app. Only meaningful below Android 14: from 14 on,
+     * Health Connect is a platform module and no such APK exists. Kept for the
+     * pre-14 Play Store install flow and the manifest `<queries>` entry — never pass
+     * it to [HealthConnectClient.getSdkStatus] / [HealthConnectClient.getOrCreate].
+     */
     const val PROVIDER_PACKAGE = "com.google.android.apps.healthdata"
 
     /** Huawei Health writes into Health Connect under this package name. */
@@ -89,9 +96,18 @@ object HealthConnectHub {
     // Availability
     // ==================================================================
 
-    /** One of [HealthConnectClient.SDK_AVAILABLE] / `SDK_UNAVAILABLE*`. */
+    /**
+     * One of [HealthConnectClient.SDK_AVAILABLE] / `SDK_UNAVAILABLE*`.
+     *
+     * Deliberately uses the *no-provider-package* overload. Passing [PROVIDER_PACKAGE]
+     * explicitly forces the client down the "look for the healthdata APK" path, and on
+     * Android 14+ that APK does not exist — Health Connect is a platform module there —
+     * so an explicit package makes every 14/15/16 phone report `SDK_UNAVAILABLE` and the
+     * app claim Health Connect "isn't installed" while it sits in system Settings.
+     * The default overload picks the platform on API 34+ and the APK below it.
+     */
     fun sdkStatus(context: Context): Int = try {
-        HealthConnectClient.getSdkStatus(context, PROVIDER_PACKAGE)
+        HealthConnectClient.getSdkStatus(context)
     } catch (e: Exception) {
         Log.w(TAG, "getSdkStatus failed: ${e.message}")
         HealthConnectClient.SDK_UNAVAILABLE
@@ -104,7 +120,8 @@ object HealthConnectHub {
     fun client(context: Context): HealthConnectClient? {
         if (!isAvailable(context)) return null
         return try {
-            HealthConnectClient.getOrCreate(context, PROVIDER_PACKAGE)
+            // Same reasoning as sdkStatus: the default overload is the platform-aware one.
+            HealthConnectClient.getOrCreate(context)
         } catch (e: Exception) {
             Log.w(TAG, "getOrCreate failed: ${e.message}")
             null
@@ -120,6 +137,18 @@ object HealthConnectHub {
 
     suspend fun hasPermissions(context: Context, wanted: Set<String>): Boolean =
         grantedPermissions(context).containsAll(wanted)
+
+    /**
+     * True when Health Connect lives in the platform rather than in a Play Store app.
+     * On such devices there is nothing to install, so the UI must send users to
+     * Settings instead of to a Play listing that does not exist.
+     */
+    val isPlatformProvider: Boolean
+        get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+
+    /** Health Connect's own settings screen (platform module on 14+, provider app below). */
+    fun settingsIntent(): Intent =
+        Intent(HealthConnectClient.ACTION_HEALTH_CONNECT_SETTINGS)
 
     /** Play Store deep link for installing / updating the provider app. */
     fun installIntent(): Intent =
@@ -170,10 +199,18 @@ object HealthConnectHub {
                         beatsPerMinute = it.second.toLong()
                     )
                 },
-                metadata = Metadata(
+                // The public Metadata(...) constructor is `internal` as of connect-client
+                // 1.1.0; the recording method now picks the factory. Same clientRecordId
+                // and clientRecordVersion as before, so upserts still dedup against the
+                // records already on users' phones.
+                //
+                // `autoRecorded` demands a non-null Device where the old constructor let
+                // it default to null. TYPE_UNKNOWN is the faithful translation: it claims
+                // nothing about the BLE peer, exactly as the absent device did.
+                metadata = Metadata.autoRecorded(
+                    device = Device(type = Device.TYPE_UNKNOWN),
                     clientRecordId = "pulsenx-hr-${ordered.first().first}",
-                    clientRecordVersion = 1L,
-                    recordingMethod = Metadata.RECORDING_METHOD_AUTOMATICALLY_RECORDED
+                    clientRecordVersion = 1L
                 )
             )
 

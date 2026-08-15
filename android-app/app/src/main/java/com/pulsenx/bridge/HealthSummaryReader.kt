@@ -129,10 +129,10 @@ object HealthSummaryReader {
 
         val sleepMin = readSleepMinutes(client, now, origins)
 
-        val restingBpm = latest(client, RestingHeartRateRecord::class, lastDay, origins) { it.time }
+        val restingBpm = latest(client, RestingHeartRateRecord::class, lastDay, origins)
             ?.beatsPerMinute?.toInt()
 
-        val spo2Pct = latest(client, OxygenSaturationRecord::class, lastDay, origins) { it.time }
+        val spo2Pct = latest(client, OxygenSaturationRecord::class, lastDay, origins)
             ?.percentage?.value?.round(1)
 
         val source = if (origins.any { it.contains("huawei", ignoreCase = true) }) {
@@ -185,15 +185,24 @@ object HealthSummaryReader {
         origins: MutableSet<String>
     ): Long? = try {
         val windowStart = now.minus(Duration.ofHours(SLEEP_WINDOW_HOURS))
-        val sessions = client.readRecords(
-            ReadRecordsRequest(
-                recordType = SleepSessionRecord::class,
-                timeRangeFilter = TimeRangeFilter.between(
-                    now.minus(Duration.ofHours(SLEEP_LOOKBACK_HOURS)), now
-                ),
-                ascendingOrder = true
-            )
-        ).records.filter { it.endTime.isAfter(windowStart) }
+        val range = TimeRangeFilter.between(
+            now.minus(Duration.ofHours(SLEEP_LOOKBACK_HOURS)), now
+        )
+        val sessions = buildList {
+            var pageToken: String? = null
+            do {
+                val response = client.readRecords(
+                    ReadRecordsRequest(
+                        recordType = SleepSessionRecord::class,
+                        timeRangeFilter = range,
+                        ascendingOrder = true,
+                        pageToken = pageToken
+                    )
+                )
+                addAll(response.records)
+                pageToken = response.pageToken
+            } while (pageToken != null)
+        }.filter { it.endTime.isAfter(windowStart) }
 
         sessions.forEach { origins += it.metadata.dataOrigin.packageName }
         if (sessions.isEmpty()) null
@@ -208,14 +217,18 @@ object HealthSummaryReader {
         client: HealthConnectClient,
         type: KClass<T>,
         range: TimeRangeFilter,
-        origins: MutableSet<String>,
-        timeOf: (T) -> Instant
+        origins: MutableSet<String>
     ): T? = try {
         val records = client.readRecords(
-            ReadRecordsRequest(recordType = type, timeRangeFilter = range, ascendingOrder = true)
+            ReadRecordsRequest(
+                recordType = type,
+                timeRangeFilter = range,
+                ascendingOrder = false,
+                pageSize = 1
+            )
         ).records
         records.forEach { origins += it.metadata.dataOrigin.packageName }
-        records.maxByOrNull { timeOf(it).toEpochMilli() }
+        records.firstOrNull()
     } catch (e: Exception) {
         Log.d(TAG, "${type.simpleName} read unavailable: ${e.message}")
         null
