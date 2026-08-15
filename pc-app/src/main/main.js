@@ -14,6 +14,7 @@
  *                                     \-> ws broadcast --> OBS widget
  *                                     \-> OSC engine   --> VRChat
  *                                     \-> Discord RPC
+ *                                     \-> connector.js --> NX Hub bus (:9021)
  *
  *   phone {type:'health'} -------> main --> normalizeHealth --> IPC 'health'
  *   (Health Connect daily summary; shares the transports, not the pipeline)
@@ -30,6 +31,7 @@ const { MqttLink, generateLinkCode } = require('./mqtt-link');
 const { OscEngine } = require('./osc-engine');
 const { ObsServer, OBS_PORT: DEFAULT_OBS_PORT } = require('./obs-server');
 const { DiscordLink } = require('./discord-rpc');
+const { HubConnector } = require('./connector');
 const csv = require('./csv');
 const { startE2eHooks, E2E_HOOKS_PORT: DEFAULT_E2E_PORT } = require('./e2e-hooks');
 
@@ -77,6 +79,7 @@ let mqttLink = null;
 let oscEngine = null;
 let obsServer = null;
 let discord = null;
+let hub = null;
 let e2eServer = null;
 
 // Last valid daily health summary, replayed whenever the dashboard (re)loads.
@@ -242,12 +245,16 @@ function handleVitals(raw, meta) {
   // 5. Discord.
   if (discord && cfg.discord.enabled) discord.update(processed);
 
-  // 6. Link status (battery / RSSI readout, plus which sensor the phone is
+  // 6. NX Hub. Self-throttling and change-gated — a sample that says nothing
+  // new never reaches the bus.
+  if (hub) hub.setVitals(processed);
+
+  // 7. Link status (battery / RSSI readout, plus which sensor the phone is
   // reading). Vitals arrive several times a second; the status line only needs
   // repainting when something in it moves.
   publishLinkStatus((meta && meta.source) || 'lan', processed, raw && raw.src);
 
-  // 7. Alarms.
+  // 8. Alarms.
   evaluateAlarms(processed, cfg, now);
 
   return processed;
@@ -339,6 +346,7 @@ function goOffline(detail, source) {
 
   // Presence must not freeze at the last live BPM once the stream is gone.
   if (discord && cfg.discord.enabled) discord.setIdle();
+  if (hub) hub.setOffline();
 
   sendToRenderer('link', {
     state: 'awaiting',
@@ -495,6 +503,12 @@ function bootstrap() {
   applySettings(settings.get());
   startTimers();
 
+  // NX Hub presence. Not a transport — it carries no vitals into the app, it
+  // only reports outward — and it is inert when NX Hub is not installed.
+  hub = new HubConnector({ suppressed: E2E_MODE });
+  hub.on('shutdown-request', () => app.quit());
+  hub.start({ version: app.getVersion() });
+
   createMainWindow();
 
   if (E2E_MODE) {
@@ -518,6 +532,7 @@ function shutdown() {
 
   if (oscEngine) oscEngine.stop();
   if (discord) discord.stop();
+  if (hub) hub.stop();
   if (mqttLink) mqttLink.stop();
   if (lanServer) lanServer.stop();
   if (beacon) beacon.stop();

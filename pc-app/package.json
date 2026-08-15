@@ -1,6 +1,6 @@
 {
   "name": "pulsenx-pc",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "PulseNX PC — vitals stream suite (dashboard, VRChat OSC, overlays, OBS)",
   "main": "src/main/main.js",
   "desktopName": "pulsenx.desktop",
@@ -9,7 +9,7 @@
   "scripts": {
     "start": "electron .",
     "test": "node --test test/state.test.js",
-    "test:unit": "node --test test/state.test.js test/csv-settings.test.js",
+    "test:unit": "node --test test/state.test.js test/csv-settings.test.js test/connector.test.js",
     "test:e2e": "node test/e2e.js",
     "dist:linux": "electron-builder --linux AppImage",
     "dist:win": "electron-builder --win portable"

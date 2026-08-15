@@ -25,6 +25,8 @@ pulsenx/
       osc-engine.js    # node-osc client, 1 Hz avatar params + beat pulse + chatbox loops
       obs-server.js    # HTTP :9005 serving the OBS browser-source widget
       discord-rpc.js   # Discord Rich Presence
+      connector.js     # NX Hub presence: {hr, connected} on the bus, <=1/s, on change
+      nx-connector.js  # VENDORED verbatim from nerdrx/nx-hub docs/connector — do not edit
       csv.js           # session CSV export (save dialog + write) and CSV parse for history
       e2e-hooks.js     # --e2e-hooks loopback DOM probe (port 9010), same design as before
     src/renderer/      # UI only, NO node access (contextIsolation: true, nodeIntegration: false)
@@ -97,6 +99,17 @@ PC app:
     Unknown fields render `--`, never 0. Carries a source chip (`via Huawei Health` /
     `via Health Connect`) and an `updated HH:MM` stamp from `ts`. Placeholder state until the
     first `health` event; the last summary is cached in main and replayed on dashboard reload.
+15. **NX Hub connector** (`connector.js`): announces PulseNX on the NX Hub bus
+    (`ws://127.0.0.1:9021`) so the hub's app card and tray show live heart rate. Publishes exactly
+    the two fields the hub declares for us — `{hr: int bpm, connected: bool}` — where `connected`
+    means the watch/bridge is delivering data, not that the hub socket is up. Sent at most once
+    per second and only on a real change (`hr` moved, or `connected` flipped); a throttled update
+    is deferred and flushed, never dropped, so the newest reading always wins. When the stream
+    stops (`goOffline`) it sends `connected:false` and omits `hr`, leaving the hub's merged
+    last-known reading on the card. `shutdown-request` from the hub quits the app. Entirely inert
+    and silent when NX Hub is not installed, and suppressed under `--e2e-hooks` so a test run
+    cannot evict the real app from its bus slot. The socket layer is `nx-connector.js`, vendored
+    verbatim from nx-hub — fixes go upstream, never into our copy.
 
 Android app (`com.pulsenx.bridge`, minSdk 26, target/compile 34):
 1. BLE heart-rate profile client (0x180D/0x2A37): scan (15 s timeout, name OR service filter),
