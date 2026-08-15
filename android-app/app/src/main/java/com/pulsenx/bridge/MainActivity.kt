@@ -450,7 +450,16 @@ class MainActivity : android.app.Activity() {
 
     /**
      * This is a plain [android.app.Activity], so there is no `registerForActivityResult`
-     * to lean on: the Health Connect contract is driven by hand instead.
+     * to lean on.
+     *
+     * On Android 14+ health permissions are ordinary runtime permissions, and the
+     * connect-client contract reflects that: `createIntent` returns androidx's SYNTHETIC
+     * `action.REQUEST_PERMISSIONS` intent, which only the androidx ActivityResult
+     * registry knows how to translate into a real permission request. Fired raw through
+     * `startActivityForResult` it resolves to nothing (verified on-device: ActivityTaskManager
+     * result -91). So on 34+ the request goes through the platform's own
+     * [requestPermissions]; the hand-driven contract stays for the pre-14 provider APK,
+     * whose contract returns a real launchable intent.
      */
     private fun requestHealthPermissions(wanted: Set<String>) {
         when (HealthConnectHub.sdkStatus(this)) {
@@ -460,6 +469,10 @@ class MainActivity : android.app.Activity() {
                 return
             }
         }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            requestPermissions(wanted.toTypedArray(), HC_PERM_REQUEST)
+            return
+        }
         try {
             startActivityForResult(hcContract.createIntent(this, wanted), HC_PERM_REQUEST)
         } catch (e: Exception) {
@@ -467,17 +480,20 @@ class MainActivity : android.app.Activity() {
         }
     }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode != HC_PERM_REQUEST) return
-
-        hcGranted = try {
-            hcContract.parseResult(resultCode, data)
-        } catch (_: Exception) {
-            emptySet()
-        }
+    /**
+     * Shared landing point for both grant flows: [onActivityResult] (pre-14 contract)
+     * and [onRequestPermissionsResult] (14+ runtime permissions). Reconciles the switch
+     * states with what actually got granted.
+     */
+    private fun onHealthPermissionOutcome(granted: Set<String>) {
+        hcGranted = granted
 
         if (hcGranted.isEmpty()) toast(getString(R.string.health_status_denied))
+        // Everything granted looks like "nothing happened" (Android shows no UI when
+        // there is nothing left to ask), so say it out loud.
+        else if (hcGranted.containsAll(HealthConnectHub.ALL_PERMISSIONS)) {
+            toast(getString(R.string.health_status_all_granted))
+        }
 
         bindingSwitches = true
         if (!hcGranted.contains(HealthConnectHub.WRITE_HEART_RATE) && switchHcWrite.isChecked) {
@@ -495,6 +511,19 @@ class MainActivity : android.app.Activity() {
         if (hcGranted.containsAll(HealthConnectHub.READ_PERMISSIONS)) {
             sendServiceAction(VitalsBridgeService.ACTION_REFRESH_HEALTH)
         }
+    }
+
+    /** Pre-Android-14 grant flow: the provider-APK contract round-trip. */
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != HC_PERM_REQUEST) return
+
+        val granted = try {
+            hcContract.parseResult(resultCode, data)
+        } catch (_: Exception) {
+            emptySet()
+        }
+        onHealthPermissionOutcome(granted)
     }
 
     // ------------------------------------------------------------------
@@ -564,6 +593,14 @@ class MainActivity : android.app.Activity() {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == PERM_REQUEST && !hasRequiredPermissions()) {
             toast("Bluetooth permissions are required to reach your watch")
+        }
+        if (requestCode == HC_PERM_REQUEST) {
+            // Android 14+ health grant flow. The callback's grantResults only cover
+            // what was just asked for; the permission controller is the authority on
+            // the full grant set, so it is re-queried instead of parsed from here.
+            uiScope.launch {
+                onHealthPermissionOutcome(HealthConnectHub.grantedPermissions(this@MainActivity))
+            }
         }
     }
 

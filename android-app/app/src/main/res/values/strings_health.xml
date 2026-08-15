@@ -24,6 +24,7 @@
     <string name="health_status_waiting">Health Connect linked · reading today</string>
     <string name="health_status_ready">Health Connect linked · %1$s</string>
     <string name="health_status_denied">Health Connect access was not granted</string>
+    <string name="health_status_all_granted">All health permissions granted ✓</string>
 
     <!-- Toasts -->
     <string name="health_toast_source">Heart rate now comes from %1$s</string>
