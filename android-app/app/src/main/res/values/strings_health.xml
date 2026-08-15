@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Strings owned by the health-suite logic (Health Connect source, daily summary,
+    write-back and mirror sync). Purely visual strings live in strings.xml.
+-->
+<resources>
+
+    <!-- Heart-rate source -->
+    <string name="source_ble">Watch</string>
+    <string name="source_health">Huawei Health</string>
+
+    <!-- Notification status line while the Health Connect source drives the feed -->
+    <string name="health_src_waiting">Huawei Health · waiting for data</string>
+    <string name="health_src_age">Huawei Health · %1$s ago</string>
+    <string name="health_src_missing">Health Connect not installed</string>
+    <string name="health_src_update">Health Connect needs an update</string>
+    <string name="health_src_permission">Health Connect access not granted</string>
+    <string name="health_src_error">Health Connect read failed</string>
+
+    <!-- Health card status line -->
+    <string name="health_status_missing">Health Connect is not installed — tap to get it</string>
+    <string name="health_status_update">Health Connect needs an update — tap to update</string>
+    <string name="health_status_permission">Tap to grant Health Connect access</string>
+    <string name="health_status_waiting">Health Connect linked · reading today</string>
+    <string name="health_status_ready">Health Connect linked · %1$s</string>
+    <string name="health_status_denied">Health Connect access was not granted</string>
+
+    <!-- Toasts -->
+    <string name="health_toast_source">Heart rate now comes from %1$s</string>
+    <string name="health_toast_write_permission">Grant Health Connect write access to store heart rate</string>
+    <string name="health_toast_mirror_on">Mirroring Huawei data into Health Connect every 15 minutes</string>
+    <string name="health_toast_mirror_off">Mirror sync stopped</string>
+    <string name="health_toast_unavailable">Health Connect is not available on this phone</string>
+
+    <!-- Health card values -->
+    <string name="health_value_none">—</string>
+    <string name="health_value_kcal">%1$d kcal</string>
+    <string name="health_value_sleep">%1$dh %2$02dm</string>
+    <string name="health_value_bpm">%1$d bpm</string>
+
+</resources>

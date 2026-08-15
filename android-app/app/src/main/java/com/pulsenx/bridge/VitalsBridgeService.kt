@@ -39,6 +39,11 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import android.util.Log
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 import org.json.JSONObject
 import java.net.DatagramPacket
 import java.net.DatagramSocket
@@ -47,8 +52,9 @@ import kotlin.concurrent.thread
 import kotlin.math.roundToInt
 
 /**
- * The whole bridge: BLE heart-rate client on one side, PC transport on the other,
- * kept alive by a `connectedDevice` foreground service.
+ * The whole bridge: a heart-rate source on one side (either the watch's BLE GATT
+ * profile or the Health Connect poller), the PC transport on the other, kept alive
+ * by a `connectedDevice` foreground service.
  */
 class VitalsBridgeService : Service(), PcLink.Listener {
 
@@ -62,21 +68,44 @@ class VitalsBridgeService : Service(), PcLink.Listener {
         const val KEY_PAIRED_NAME = "PAIRED_NAME"
         const val KEY_PC_TARGET = "PC_TARGET"
 
+        /** "ble" (default) or "health" — which feed drives the BPM pipeline. */
+        const val KEY_HR_SOURCE = "HR_SOURCE"
+        /** Write BLE-captured heart rate back into Health Connect. */
+        const val KEY_HC_WRITE = "HC_WRITE_ENABLED"
+        /** Mirror Huawei-origin Health Connect records under the PulseNX origin. */
+        const val KEY_FIT_MIRROR = "FIT_MIRROR_ENABLED"
+        /** Health Connect changes-API cursor for the mirror sync. */
+        const val KEY_MIRROR_TOKEN = "HC_MIRROR_TOKEN"
+
+        const val SOURCE_BLE = "ble"
+        const val SOURCE_HEALTH = "health"
+
         const val ACTION_LINK_PC = "com.pulsenx.bridge.LINK_PC"
         const val ACTION_DISCONNECT_PC = "com.pulsenx.bridge.DISCONNECT_PC"
         const val ACTION_START_SCAN = "com.pulsenx.bridge.START_SCAN"
         const val ACTION_STOP_SCAN = "com.pulsenx.bridge.STOP_SCAN"
         const val ACTION_UNPAIR_WATCH = "com.pulsenx.bridge.UNPAIR_WATCH"
         const val ACTION_CONNECT_DEVICE = "com.pulsenx.bridge.CONNECT_DEVICE"
+        const val ACTION_SET_SOURCE = "com.pulsenx.bridge.SET_SOURCE"
+        const val ACTION_REFRESH_HEALTH = "com.pulsenx.bridge.REFRESH_HEALTH"
 
         const val EXTRA_PC_TARGET = "PC_TARGET"
         const val EXTRA_DEVICE_MAC = "DEVICE_MAC"
+        const val EXTRA_HR_SOURCE = "HR_SOURCE"
 
         private const val SCAN_TIMEOUT_MS = 15_000L
         private const val BLE_RECONNECT_MS = 3_000L
         private const val RSSI_POLL_MS = 30_000L
         private const val HAPTIC_MIN_GAP_MS = 10_000L
         private const val HIGH_HR_THRESHOLD = 165
+
+        /** How often the daily health summary is pushed while the PC link is up. */
+        private const val HEALTH_SUMMARY_MS = 300_000L
+        /** Refresh the "… ago" line in the notification while on the Health source. */
+        private const val HEALTH_TICK_MS = 15_000L
+        /** Health Connect HR write-back batching. */
+        private const val HC_FLUSH_MS = 300_000L
+        private const val HC_FLUSH_SAMPLES = 300
 
         private const val DISCOVERY_PORT = 9001
 
@@ -114,6 +143,17 @@ class VitalsBridgeService : Service(), PcLink.Listener {
     private var btReceiverRegistered = false
     private var notificationText = "Starting…"
 
+    /** Health Connect work is coroutine-only; this scope lives exactly as long as the service. */
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    private var hrSource = SOURCE_BLE
+    private var healthSource: HealthConnectSource? = null
+    private var lastHealthSampleAt = 0L
+    private var healthError: String? = null
+
+    /** BLE samples waiting to be written into Health Connect (guarded by itself). */
+    private val hcWriteBuffer = ArrayList<Pair<Long, Int>>()
+
     // ==================================================================
     // Lifecycle
     // ==================================================================
@@ -135,8 +175,24 @@ class VitalsBridgeService : Service(), PcLink.Listener {
         // Resume whatever we were linked to before the process died / the phone rebooted.
         val prefs = prefs()
         prefs.getString(KEY_PC_TARGET, "")?.takeIf { it.isNotEmpty() }?.let { pcLink.connect(it) }
-        prefs.getString(KEY_PAIRED_MAC, "")?.takeIf { it.isNotEmpty() }?.let { connectToWatchByMac(it) }
         BridgeEngine.watchName = prefs.getString(KEY_PAIRED_NAME, "") ?: ""
+
+        hrSource = prefs.getString(KEY_HR_SOURCE, SOURCE_BLE).orEmpty().ifEmpty { SOURCE_BLE }
+        BridgeEngine.hrSource = hrSource
+        if (hrSource == SOURCE_HEALTH) {
+            // Health Connect owns the feed; the watch stays untouched (and un-drained).
+            startHealthSource()
+        } else {
+            prefs.getString(KEY_PAIRED_MAC, "")?.takeIf { it.isNotEmpty() }
+                ?.let { connectToWatchByMac(it) }
+        }
+
+        // Always armed: the tick is a no-op with an empty buffer, which keeps the
+        // HC_WRITE_ENABLED switch working without a round-trip to the service.
+        handler.postDelayed(hcFlushTick, HC_FLUSH_MS)
+
+        // Seed the health card even before the PC link comes up.
+        refreshHealthSummary(send = false)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -163,6 +219,11 @@ class VitalsBridgeService : Service(), PcLink.Listener {
                 intent.getStringExtra(EXTRA_DEVICE_MAC)
                     ?.takeIf { it.isNotEmpty() }
                     ?.let { connectToWatchByMac(it) }
+
+            ACTION_SET_SOURCE ->
+                applySource(intent.getStringExtra(EXTRA_HR_SOURCE).orEmpty())
+
+            ACTION_REFRESH_HEALTH -> refreshHealthSummary(send = false)
         }
         return START_STICKY
     }
@@ -172,6 +233,11 @@ class VitalsBridgeService : Service(), PcLink.Listener {
     override fun onDestroy() {
         super.onDestroy()
         udpListening = false
+        stopHealthSource()
+        // Last chance to persist buffered HR: this must outlive serviceScope, so it runs
+        // on a detached scope that the cancel below cannot reach.
+        flushHcWrites(detached = true)
+        serviceScope.cancel()
         handler.removeCallbacksAndMessages(null)
         try {
             if (btReceiverRegistered) unregisterReceiver(btStateReceiver)
@@ -324,6 +390,157 @@ class VitalsBridgeService : Service(), PcLink.Listener {
         BridgeEngine.pcConnected = connected
         BridgeEngine.pcDetail = detail
         pushNotification(statusLine())
+
+        // The daily summary rides the same channel as vitals: push it the moment the
+        // link comes up, then every 5 min for as long as it stays up.
+        handler.removeCallbacks(healthSummaryTick)
+        if (connected) handler.post(healthSummaryTick)
+    }
+
+    // ==================================================================
+    // Health Connect: source, summary, write-back
+    // ==================================================================
+
+    /** Tears down the old feed and brings up the new one. No-op when unchanged. */
+    private fun applySource(requested: String) {
+        val next = if (requested == SOURCE_HEALTH) SOURCE_HEALTH else SOURCE_BLE
+        prefs().edit().putString(KEY_HR_SOURCE, next).apply()
+        if (next == hrSource) return
+
+        Log.d(TAG, "HR source $hrSource -> $next")
+        hrSource = next
+        BridgeEngine.hrSource = next
+        BridgeEngine.resetVitals()
+
+        if (next == SOURCE_HEALTH) {
+            stopBleScan()
+            handler.removeCallbacks(bleReconnect)
+            handler.removeCallbacks(rssiPoll)
+            flushHcWrites()
+            closeGatt()
+            BridgeEngine.watchConnected = false
+            lastRssi = 0
+            startHealthSource()
+        } else {
+            stopHealthSource()
+            prefs().getString(KEY_PAIRED_MAC, "")?.takeIf { it.isNotEmpty() }
+                ?.let { connectToWatchByMac(it) }
+        }
+        pushNotification(statusLine())
+    }
+
+    private fun startHealthSource() {
+        if (healthSource != null) return
+        lastHealthSampleAt = 0L
+        BridgeEngine.lastHealthSampleAt = 0L
+        healthSource = HealthConnectSource(
+            context = applicationContext,
+            scope = serviceScope,
+            onSample = { bpm, tsMs -> handler.post { onHealthSample(bpm, tsMs) } },
+            onStatus = { error ->
+                handler.post {
+                    healthError = error
+                    BridgeEngine.healthSourceError = error
+                    pushNotification(statusLine())
+                }
+            }
+        ).also { it.start() }
+        handler.removeCallbacks(healthAgeTick)
+        handler.postDelayed(healthAgeTick, HEALTH_TICK_MS)
+    }
+
+    private fun stopHealthSource() {
+        handler.removeCallbacks(healthAgeTick)
+        healthSource?.stop()
+        healthSource = null
+        healthError = null
+        BridgeEngine.healthSourceError = null
+    }
+
+    /** A Health Connect sample takes exactly the same path a BLE packet would. */
+    private fun onHealthSample(bpm: Int, tsMs: Long) {
+        lastHealthSampleAt = tsMs
+        BridgeEngine.lastHealthSampleAt = tsMs
+        BridgeEngine.notifyBpmUpdated(bpm)
+
+        if (bpm > HIGH_HR_THRESHOLD) triggerHapticAlert()
+
+        // Health Connect carries no RR interval and no contact flag; the sample only
+        // exists because the watch was worn, so contact is reported true.
+        sendVitals(bpm, rr = 0, contact = true, src = SOURCE_HEALTH)
+        pushNotification(statusLine())
+    }
+
+    /** Keeps the "… ago" age in the notification honest between samples. */
+    private val healthAgeTick = object : Runnable {
+        override fun run() {
+            if (hrSource != SOURCE_HEALTH) return
+            pushNotification(statusLine())
+            handler.postDelayed(this, HEALTH_TICK_MS)
+        }
+    }
+
+    private val healthSummaryTick = object : Runnable {
+        override fun run() {
+            refreshHealthSummary(send = true)
+            handler.postDelayed(this, HEALTH_SUMMARY_MS)
+        }
+    }
+
+    /** Reads the daily roll-up, caches it for the UI and optionally ships it to the PC. */
+    private fun refreshHealthSummary(send: Boolean) {
+        if (!HealthConnectHub.isAvailable(applicationContext)) return
+        serviceScope.launch {
+            try {
+                if (!HealthConnectHub.hasPermissions(
+                        applicationContext, HealthConnectHub.READ_PERMISSIONS
+                    )
+                ) {
+                    Log.d(TAG, "health summary skipped, read permissions incomplete")
+                    return@launch
+                }
+                val summary = HealthSummaryReader.read(applicationContext) ?: return@launch
+                BridgeEngine.lastHealthSummary = summary
+                if (send && pcLink.isConnected) {
+                    pcLink.send(summary.toMessageJson())
+                    Log.d(TAG, "health summary sent (source=${summary.source})")
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "health summary failed: ${e.message}")
+            }
+        }
+    }
+
+    // --- Write-back of BLE samples into Health Connect -----------------
+
+    private val hcFlushTick = object : Runnable {
+        override fun run() {
+            flushHcWrites()
+            handler.postDelayed(this, HC_FLUSH_MS)
+        }
+    }
+
+    private fun bufferForHealthConnect(bpm: Int) {
+        if (!prefs().getBoolean(KEY_HC_WRITE, false)) return
+        val full: Boolean
+        synchronized(hcWriteBuffer) {
+            hcWriteBuffer += System.currentTimeMillis() to bpm
+            full = hcWriteBuffer.size >= HC_FLUSH_SAMPLES
+        }
+        if (full) flushHcWrites()
+    }
+
+    private fun flushHcWrites(detached: Boolean = false) {
+        val batch: List<Pair<Long, Int>>
+        synchronized(hcWriteBuffer) {
+            if (hcWriteBuffer.isEmpty()) return
+            batch = ArrayList(hcWriteBuffer)
+            hcWriteBuffer.clear()
+        }
+        val scope = if (detached) CoroutineScope(SupervisorJob() + Dispatchers.IO) else serviceScope
+        scope.launch {
+            HealthConnectHub.writeHeartRateSeries(applicationContext, batch)
+        }
     }
 
     // ==================================================================
@@ -595,6 +812,8 @@ class VitalsBridgeService : Service(), PcLink.Listener {
      */
     private fun parseHeartRatePacket(value: ByteArray?) {
         if (value == null || value.size < 2) return
+        // A GATT notification can still land right after a source switch; ignore it.
+        if (hrSource != SOURCE_BLE) return
 
         val flags = value[0].toInt() and 0xFF
         var index = 1
@@ -624,10 +843,11 @@ class VitalsBridgeService : Service(), PcLink.Listener {
 
         if (bpm > HIGH_HR_THRESHOLD) triggerHapticAlert()
 
-        sendVitals(bpm, rr, contact)
+        bufferForHealthConnect(bpm)
+        sendVitals(bpm, rr, contact, SOURCE_BLE)
     }
 
-    private fun sendVitals(bpm: Int, rr: Int, contact: Boolean) {
+    private fun sendVitals(bpm: Int, rr: Int, contact: Boolean, src: String) {
         if (!pcLink.isConnected) return
         try {
             val json = JSONObject().apply {
@@ -636,6 +856,7 @@ class VitalsBridgeService : Service(), PcLink.Listener {
                 put("contact", contact)
                 put("battery", batteryLevel())
                 put("rssi", lastRssi)
+                put("src", src)
             }
             pcLink.send(json.toString())
         } catch (e: Exception) {
@@ -672,13 +893,23 @@ class VitalsBridgeService : Service(), PcLink.Listener {
     // ==================================================================
 
     private fun statusLine(): String {
-        val watch = when {
-            BridgeEngine.watchConnected -> "Watch streaming"
-            BridgeEngine.isScanning -> "Scanning…"
-            else -> "Watch offline"
-        }
+        val source = if (hrSource == SOURCE_HEALTH) healthSourceLine() else watchLine()
         val pc = if (BridgeEngine.pcConnected) pcLink.describe() else "PC offline"
-        return "$watch  •  $pc"
+        return "$source  •  $pc"
+    }
+
+    private fun watchLine(): String = when {
+        BridgeEngine.watchConnected -> "Watch streaming"
+        BridgeEngine.isScanning -> "Scanning…"
+        else -> "Watch offline"
+    }
+
+    /** e.g. "Huawei Health · 24 s ago", or the reason there is nothing to show. */
+    private fun healthSourceLine(): String {
+        healthError?.let { return it }
+        if (lastHealthSampleAt <= 0L) return getString(R.string.health_src_waiting)
+        val age = HealthConnectHub.ago(System.currentTimeMillis() - lastHealthSampleAt)
+        return getString(R.string.health_src_age, age)
     }
 
     private fun createNotificationChannel() {
