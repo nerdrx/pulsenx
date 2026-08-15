@@ -1,11 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Inset glass field: reads as a well pressed into the card, violet rim on focus. -->
+<!--
+  Input well (NX §5): a recess pressed into the card, not a second sheet of glass.
+  The fill darkens toward the top-left rim - the side the light comes from - so it
+  reads as depth rather than as a tinted panel. line border, violet on focus.
+  Radius = radius-sm (12dp).
+-->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
 
     <item android:state_focused="true">
         <shape android:shape="rectangle">
-            <corners android:radius="16dp" />
-            <solid android:color="@color/glass_fill_inset" />
+            <corners android:radius="12dp" />
+            <gradient
+                android:angle="315"
+                android:endColor="@color/glass_well_bottom"
+                android:startColor="@color/glass_well_top"
+                android:type="linear" />
             <stroke
                 android:width="1dp"
                 android:color="@color/nx_accent_soft" />
@@ -14,11 +23,15 @@
 
     <item>
         <shape android:shape="rectangle">
-            <corners android:radius="16dp" />
-            <solid android:color="@color/glass_fill_inset" />
+            <corners android:radius="12dp" />
+            <gradient
+                android:angle="315"
+                android:endColor="@color/glass_well_bottom"
+                android:startColor="@color/glass_well_top"
+                android:type="linear" />
             <stroke
                 android:width="1dp"
-                android:color="@color/glass_hairline" />
+                android:color="@color/nx_line" />
         </shape>
     </item>
 </selector>

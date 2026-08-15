@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Glass switch track; violet gradient once checked. -->
+<!-- Switch track: a well trough off, a lit violet pill on. -->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
 
     <item android:state_checked="true">
@@ -10,8 +10,9 @@
             <corners android:radius="100dp" />
             <gradient
                 android:angle="315"
-                android:endColor="@color/nx_accent_grad_b"
-                android:startColor="@color/nx_accent_grad_a"
+                android:centerColor="@color/nx_accent_grad_body"
+                android:endColor="@color/nx_accent_grad_deep"
+                android:startColor="@color/nx_accent_grad_lit"
                 android:type="linear" />
             <stroke
                 android:width="1dp"
@@ -25,10 +26,14 @@
                 android:width="48dp"
                 android:height="30dp" />
             <corners android:radius="100dp" />
-            <solid android:color="@color/nx_track_off" />
+            <gradient
+                android:angle="315"
+                android:endColor="@color/glass_well_bottom"
+                android:startColor="@color/glass_well_top"
+                android:type="linear" />
             <stroke
                 android:width="1dp"
-                android:color="@color/glass_hairline" />
+                android:color="@color/nx_line" />
         </shape>
     </item>
 </selector>

@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Primary action pill: violet gradient, glossy top edge, ripple clipped to the pill. -->
+<!--
+  Primary action pill (NX §5): violet fill, lit top edge, ripple clipped to the
+  pill. The fill runs lit violet at the top-left → brand violet at the bottom-right,
+  so it sits under the same light as every card on the screen.
+-->
 <ripple xmlns:android="http://schemas.android.com/apk/res/android"
     android:color="@color/glass_ripple">
 
@@ -10,28 +14,13 @@
                     <corners android:radius="100dp" />
                     <gradient
                         android:angle="315"
-                        android:endColor="@color/nx_accent_grad_b"
-                        android:startColor="@color/nx_accent_grad_a"
+                        android:centerColor="@color/nx_accent_grad_body"
+                        android:endColor="@color/nx_accent_grad_deep"
+                        android:startColor="@color/nx_accent_grad_lit"
                         android:type="linear" />
                     <stroke
                         android:width="1dp"
                         android:color="@color/glass_hairline_soft" />
-                </shape>
-            </item>
-
-            <item
-                android:gravity="top|fill_horizontal"
-                android:height="20dp"
-                android:left="2dp"
-                android:right="2dp"
-                android:top="1dp">
-                <shape android:shape="rectangle">
-                    <corners android:radius="100dp" />
-                    <gradient
-                        android:angle="270"
-                        android:endColor="@color/glass_specular_none"
-                        android:startColor="@color/glass_specular_top"
-                        android:type="linear" />
                 </shape>
             </item>
 
@@ -48,13 +37,27 @@
                         android:type="linear" />
                 </shape>
             </item>
+
+            <item
+                android:gravity="bottom|fill_horizontal"
+                android:height="1dp"
+                android:left="28dp"
+                android:right="28dp">
+                <shape android:shape="rectangle">
+                    <gradient
+                        android:angle="0"
+                        android:endColor="@color/glass_edge_shadow"
+                        android:startColor="@color/glass_specular_none"
+                        android:type="linear" />
+                </shape>
+            </item>
         </layer-list>
     </item>
 
     <item android:id="@android:id/mask">
         <shape android:shape="rectangle">
             <corners android:radius="100dp" />
-            <solid android:color="#ffffffff" />
+            <solid android:color="#FFFFFFFF" />
         </shape>
     </item>
 </ripple>

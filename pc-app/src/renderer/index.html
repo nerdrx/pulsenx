@@ -12,6 +12,16 @@
   <script src="../../node_modules/chart.js/dist/chart.umd.js"></script>
 </head>
 <body>
+  <!-- The living background (DESIGN.md §3): three slow radial blobs over the
+       deep-space field, plus a sparse static starfield. CSS-only, transform
+       animations only, parked by app.js when the window is hidden. -->
+  <div class="nebula" aria-hidden="true">
+    <i class="neb neb-1"></i>
+    <i class="neb neb-2"></i>
+    <i class="neb neb-3"></i>
+  </div>
+  <div class="starfield" aria-hidden="true"></div>
+
   <div class="alarm-flash" id="alarm-flash" aria-hidden="true"></div>
 
   <div class="app-shell">
@@ -39,8 +49,8 @@
       </div>
 
       <div class="header-right">
-        <div class="link-code-box" title="Enter this code on the phone app">
-          <span class="link-code-label">Link Code</span>
+        <div class="link-code-box" title="Enter this code in the phone app">
+          <span class="link-code-label">Link code</span>
           <strong class="link-code" id="link-code">------</strong>
         </div>
 
@@ -106,7 +116,7 @@
           <!-- LIVE HEART RATE -->
           <article class="card hr-card">
             <div class="card-head">
-              <span class="card-title">Live Heart Rate</span>
+              <span class="card-title">Live heart rate</span>
               <span class="zone-badge zone-warmup" id="zone-badge">--</span>
             </div>
 
@@ -150,7 +160,7 @@
 
           <!-- STRESS -->
           <article class="card metric-card">
-            <div class="card-head"><span class="card-title">Stress Index</span></div>
+            <div class="card-head"><span class="card-title">Stress index</span></div>
             <div class="metric-val"><span id="stress-val" class="cyan">--</span><span class="unit">%</span></div>
             <p class="metric-desc" id="stress-desc">--</p>
             <div class="meter">
@@ -163,7 +173,7 @@
           <article class="card metric-card">
             <div class="card-head"><span class="card-title">Calories</span></div>
             <div class="metric-val"><span id="kcal-val" class="violet">0.0</span><span class="unit">kcal</span></div>
-            <p class="metric-desc">Estimated live burn (Keytel)</p>
+            <p class="metric-desc">Estimated live burn, Keytel formula</p>
             <div class="spark-row">
               <span class="spark-chip">Zone <strong id="zone-inline">--</strong></span>
             </div>
@@ -172,7 +182,7 @@
 
         <!-- SUMMARY STATS -->
         <section class="card stats-card">
-          <div class="card-head"><span class="card-title">Vitals Summary</span></div>
+          <div class="card-head"><span class="card-title">Vitals summary</span></div>
           <div class="stats-grid">
             <div class="stat-box"><span class="stat-lbl">Min BPM</span><span class="stat-val" id="stat-min-bpm">--</span></div>
             <div class="stat-box hot"><span class="stat-lbl">Avg BPM</span><span class="stat-val" id="stat-avg-bpm">--</span></div>
@@ -186,7 +196,7 @@
         <!-- DAILY HEALTH (Health Connect summary from the phone) -->
         <section class="card stats-card health-card">
           <div class="card-head">
-            <span class="card-title">Daily Health</span>
+            <span class="card-title">Daily health</span>
             <span class="health-meta">
               <span class="chip health-source" id="health-source">via Health Connect</span>
               <span class="health-stamp" id="health-updated">updated --:--</span>
@@ -210,7 +220,7 @@
         <!-- LIVE CHART -->
         <section class="card chart-card">
           <div class="card-head">
-            <span class="card-title">Real-Time Telemetry</span>
+            <span class="card-title">Real-time telemetry</span>
             <div class="seg-group" id="chart-tabs">
               <button class="seg active" data-series="bpm" type="button">BPM</button>
               <button class="seg" data-series="stress" type="button">Stress</button>
@@ -219,15 +229,15 @@
           </div>
           <div class="chart-box"><canvas id="live-chart"></canvas></div>
           <div class="chart-legend">
-            <span><i class="dot dot-hr"></i> Heart Rate (BPM)</span>
-            <span><i class="dot dot-stress"></i> Stress Index (%)</span>
+            <span><i class="dot dot-hr"></i> Heart rate (BPM)</span>
+            <span><i class="dot dot-stress"></i> Stress index (%)</span>
           </div>
         </section>
 
         <div class="split-grid">
           <!-- ZONE DISTRIBUTION -->
           <section class="card">
-            <div class="card-head"><span class="card-title">HR Zone Distribution</span></div>
+            <div class="card-head"><span class="card-title">HR zone distribution</span></div>
             <div class="zone-track">
               <div class="zone-seg seg-warmup" id="zone-bar-warmup" style="width:0%"></div>
               <div class="zone-seg seg-fatburn" id="zone-bar-fatburn" style="width:0%"></div>
@@ -246,7 +256,7 @@
 
           <!-- SESSION RECORDER -->
           <section class="card recorder-card">
-            <div class="card-head"><span class="card-title">Session Recorder</span></div>
+            <div class="card-head"><span class="card-title">Session recorder</span></div>
             <div class="timer-row">
               <span class="rec-dot" id="rec-indicator"></span>
               <span class="timer" id="session-timer">00:00:00</span>
@@ -254,11 +264,11 @@
             <div class="btn-row">
               <button class="btn btn-primary" id="btn-record-start" type="button" disabled>
                 <svg viewBox="0 0 24 24" fill="currentColor" class="ic"><circle cx="12" cy="12" r="8"/></svg>
-                Start Recording
+                Start recording
               </button>
               <button class="btn btn-danger hidden" id="btn-record-stop" type="button">
                 <svg viewBox="0 0 24 24" fill="currentColor" class="ic"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>
-                Stop Recording
+                Stop recording
               </button>
               <button class="btn btn-ghost" id="btn-export-csv" type="button" disabled>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ic"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -274,7 +284,7 @@
       <section class="view" id="view-osc">
         <section class="card">
           <div class="card-head">
-            <span class="card-title">VRChat OSC Output</span>
+            <span class="card-title">VRChat OSC output</span>
             <label class="switch">
               <input type="checkbox" id="osc-enabled">
               <span class="track"></span>
@@ -284,17 +294,17 @@
 
           <div class="form-grid" id="osc-body">
             <div class="field">
-              <label for="osc-host">OSC Host</label>
+              <label for="osc-host">OSC host</label>
               <input type="text" id="osc-host" spellcheck="false">
             </div>
             <div class="field">
-              <label for="osc-port">OSC Port</label>
+              <label for="osc-port">OSC port</label>
               <input type="number" id="osc-port" min="1024" max="65535">
             </div>
 
             <div class="field span-2 row-toggle">
               <div>
-                <label for="osc-fullset">Full VRChat Parameter Set</label>
+                <label for="osc-fullset">Full VRChat parameter set</label>
                 <p class="hint">All float/int/HRV/stress parameters (HRPercent, onesHR, Heartrate, HeartRateBPM …). Turn off to broadcast a single custom path instead.</p>
               </div>
               <label class="switch">
@@ -304,30 +314,30 @@
             </div>
 
             <div class="field">
-              <label for="osc-preset">Path Preset</label>
+              <label for="osc-preset">Path preset</label>
               <select id="osc-preset">
                 <option value="standard">Standard VRChat</option>
                 <option value="vrcosc">VRCOSC / HypeRate</option>
               </select>
             </div>
             <div class="field">
-              <label for="osc-path">Custom Parameter Path</label>
+              <label for="osc-path">Custom parameter path</label>
               <input type="text" id="osc-path" spellcheck="false">
             </div>
 
             <div class="field">
-              <label for="osc-min-hr">Normalize Min HR</label>
+              <label for="osc-min-hr">Normalize min HR</label>
               <input type="number" id="osc-min-hr" min="0" max="120">
             </div>
             <div class="field">
-              <label for="osc-max-hr">Normalize Max HR</label>
+              <label for="osc-max-hr">Normalize max HR</label>
               <input type="number" id="osc-max-hr" min="60" max="250">
             </div>
             <p class="hint span-2">Min/Max define how BPM maps onto the 0–1 <code>HRPercent</code> float (and −1..1 <code>FullHRPercent</code>).</p>
 
             <div class="field span-2 row-toggle">
               <div>
-                <label for="osc-beatpulse">Beat-Sync Pulse</label>
+                <label for="osc-beatpulse">Beat-sync pulse</label>
                 <p class="hint">Pulses <code>HeartBeatPulse / HeartBeat / isHRBeat / HBListen</code> true→false at your real beat rhythm (250–2000 ms).</p>
               </div>
               <label class="switch">
@@ -338,7 +348,7 @@
 
             <div class="field span-2 row-toggle">
               <div>
-                <label for="osc-chatbox">Chatbox Text</label>
+                <label for="osc-chatbox">Chatbox text</label>
                 <p class="hint">Posts to <code>/chatbox/input</code> every 3 s above your avatar's head.</p>
               </div>
               <label class="switch">
@@ -348,7 +358,7 @@
             </div>
 
             <div class="field span-2">
-              <label for="osc-chatbox-format">Chatbox Format</label>
+              <label for="osc-chatbox-format">Chatbox format</label>
               <input type="text" id="osc-chatbox-format">
               <p class="hint">Tags: <code>{bpm}</code> <code>{hrv}</code> <code>{stress}</code></p>
             </div>
@@ -357,8 +367,8 @@
 
         <div class="split-grid">
           <section class="card">
-            <div class="card-head"><span class="card-title">OBS Browser Source</span></div>
-            <p class="hint">Add a Browser Source in OBS pointing at this local URL for a transparent stream widget.</p>
+            <div class="card-head"><span class="card-title">OBS browser source</span></div>
+            <p class="hint">Add a browser source in OBS pointing at this local URL for a transparent stream widget.</p>
             <div class="input-with-btn">
               <input type="text" id="obs-url" readonly value="http://localhost:9005">
               <button class="btn btn-ghost" id="btn-copy-obs" type="button">Copy</button>
@@ -374,21 +384,21 @@
               </label>
             </div>
             <div class="field">
-              <label for="discord-details">Details Line</label>
+              <label for="discord-details">Details line</label>
               <input type="text" id="discord-details">
             </div>
             <div class="field">
-              <label for="discord-state">State Line</label>
+              <label for="discord-state">State line</label>
               <input type="text" id="discord-state">
             </div>
             <p class="hint">Tags: <code>{bpm}</code> <code>{hrv}</code> <code>{zone}</code> <code>{stress}</code> <code>{stresstext}</code></p>
             <div class="field">
               <label for="discord-client-id">Application ID (optional)</label>
-              <input type="text" id="discord-client-id" placeholder="Built-in PulseLink app when empty">
+              <input type="text" id="discord-client-id" placeholder="Built-in PulseNX app when empty">
             </div>
-            <p class="hint">Create your own app at discord.com/developers to control the displayed name — paste its ID here.</p>
+            <p class="hint">Create your own app at discord.com/developers to control the displayed name, then paste its ID here.</p>
             <div class="info-row">
-              <span class="info-lbl">RPC Status</span>
+              <span class="info-lbl">RPC status</span>
               <span class="info-val" id="discord-status">Off</span>
             </div>
           </section>
@@ -399,32 +409,32 @@
       <section class="view" id="view-alarms">
         <section class="card">
           <div class="card-head">
-            <span class="card-title">High Heart Rate Tone</span>
+            <span class="card-title">High heart-rate tone</span>
             <label class="switch">
               <input type="checkbox" id="alarm-high-tone">
               <span class="track"></span>
             </label>
           </div>
           <p class="hint">Plays a Web Audio warning tone whenever your heart rate climbs above 165 BPM.</p>
-          <button class="btn btn-outline" id="btn-test-audio" type="button">Test Audio</button>
+          <button class="btn btn-outline" id="btn-test-audio" type="button">Test audio</button>
         </section>
 
         <section class="card">
-          <div class="card-head"><span class="card-title">Threshold Alarm</span></div>
+          <div class="card-head"><span class="card-title">Threshold alarm</span></div>
           <p class="hint">Raises an alert when heart rate stays above the limit for longer than the duration filter.</p>
           <div class="form-grid">
             <div class="field">
-              <label for="alarm-bpm-limit">Trigger Limit (BPM)</label>
+              <label for="alarm-bpm-limit">Trigger limit (BPM)</label>
               <input type="number" id="alarm-bpm-limit" min="60" max="220">
             </div>
             <div class="field">
-              <label for="alarm-duration">Duration Filter (s)</label>
+              <label for="alarm-duration">Duration filter (s)</label>
               <input type="number" id="alarm-duration" min="1" max="60">
             </div>
 
             <div class="field span-2 row-toggle">
               <div>
-                <label for="alarm-audio">Warning Beeper</label>
+                <label for="alarm-audio">Warning beeper</label>
                 <p class="hint">Repeating Web Audio beep while the threshold is exceeded.</p>
               </div>
               <label class="switch">
@@ -435,7 +445,7 @@
 
             <div class="field span-2 row-toggle">
               <div>
-                <label for="alarm-osc-flag">OSC Warning Flag</label>
+                <label for="alarm-osc-flag">OSC warning flag</label>
                 <p class="hint">Sends <code>/avatar/parameters/HeartRateWarning</code> for avatar shaders.</p>
               </div>
               <label class="switch">
@@ -445,7 +455,7 @@
             </div>
           </div>
           <div class="info-row">
-            <span class="info-lbl">Alarm State</span>
+            <span class="info-lbl">Alarm state</span>
             <span class="info-val" id="alarm-state">Idle</span>
           </div>
         </section>
@@ -455,7 +465,7 @@
       <section class="view" id="view-breathing">
         <section class="card pacer-card">
           <div class="card-head">
-            <span class="card-title">Coherent Breathing Pacer</span>
+            <span class="card-title">Coherent breathing pacer</span>
             <span class="coherence-read">Coherence <strong id="lbl-flow-coherence">--%</strong></span>
           </div>
 
@@ -473,7 +483,7 @@
 
           <div class="row-toggle card-inset">
             <div>
-              <label for="pacer-sound">Meditation Chimes</label>
+              <label for="pacer-sound">Meditation chimes</label>
               <p class="hint">Soft sine chimes mark each inhale and exhale.</p>
             </div>
             <label class="switch">
@@ -489,17 +499,17 @@
       <!-- ================ HISTORY ================ -->
       <section class="view" id="view-history">
         <section class="card">
-          <div class="card-head"><span class="card-title">Load Session CSV</span></div>
-          <p class="hint">Pick a CSV exported by the Session Recorder to review its statistics and replay the timeline.</p>
+          <div class="card-head"><span class="card-title">Load a session CSV</span></div>
+          <p class="hint">Pick a CSV exported by the session recorder to review its statistics and replay the timeline.</p>
           <div class="btn-row">
             <input type="file" id="history-file" accept=".csv,text/csv" class="hidden">
-            <button class="btn btn-primary" id="btn-pick-csv" type="button">Select CSV File</button>
+            <button class="btn btn-primary" id="btn-pick-csv" type="button">Select a CSV file</button>
             <span class="file-name" id="history-filename">No file loaded</span>
           </div>
         </section>
 
         <section class="card stats-card hidden" id="history-stats">
-          <div class="card-head"><span class="card-title">Session Summary</span></div>
+          <div class="card-head"><span class="card-title">Session summary</span></div>
           <div class="stats-grid">
             <div class="stat-box"><span class="stat-lbl">Min HR</span><span class="stat-val" id="hist-hr-min">--</span></div>
             <div class="stat-box hot"><span class="stat-lbl">Avg HR</span><span class="stat-val" id="hist-hr-avg">--</span></div>
@@ -511,20 +521,26 @@
 
         <section class="card chart-card">
           <div class="card-head">
-            <span class="card-title">Historical Trace</span>
+            <span class="card-title">Historical trace</span>
             <div class="chart-legend inline">
               <span><i class="dot dot-hr"></i> HR (left)</span>
               <span><i class="dot dot-violet"></i> Stress (right)</span>
             </div>
           </div>
-          <div class="chart-box"><canvas id="history-chart"></canvas></div>
+          <div class="chart-box">
+            <canvas id="history-chart"></canvas>
+            <div class="chart-empty" id="history-empty">
+              <p class="empty-title">No session loaded yet</p>
+              <p class="hint">Load a CSV above to plot heart rate against stress for the whole session.</p>
+            </div>
+          </div>
         </section>
       </section>
 
       <!-- ================ SETTINGS ================ -->
-      <section class="view" id="view-settings">
+      <section class="view view-masonry" id="view-settings">
         <section class="card">
-          <div class="card-head"><span class="card-title">Biometric Profile</span></div>
+          <div class="card-head"><span class="card-title">Biometric profile</span></div>
           <div class="form-grid">
             <div class="field">
               <label for="profile-age">Age (years)</label>
@@ -547,7 +563,7 @@
             </div>
             <div class="field span-2">
               <div class="label-row">
-                <label for="stress-offset">Stress Baseline Offset</label>
+                <label for="stress-offset">Stress baseline offset</label>
                 <span class="value-tag" id="lbl-stress-offset">+0</span>
               </div>
               <input type="range" id="stress-offset" min="-50" max="50" step="1" class="slider">
@@ -557,7 +573,7 @@
         </section>
 
         <section class="card">
-          <div class="card-head"><span class="card-title">Overlay Content</span></div>
+          <div class="card-head"><span class="card-title">Overlay content</span></div>
           <div class="row-toggle card-inset">
             <div>
               <label for="overlay-show-bpm">Show BPM</label>
@@ -582,10 +598,10 @@
 
         <section class="card">
           <div class="card-head"><span class="card-title">Endpoints</span></div>
-          <div class="info-row"><span class="info-lbl">Link Code</span><span class="info-val cyan" id="info-link-code">------</span></div>
-          <div class="info-row"><span class="info-lbl">LAN Endpoint</span><span class="info-val" id="info-lan">Resolving…</span></div>
-          <div class="info-row"><span class="info-lbl">OBS Widget</span><span class="info-val" id="info-obs">--</span></div>
-          <div class="info-row"><span class="info-lbl">Discovery Beacon</span><span class="info-val">UDP :9001</span></div>
+          <div class="info-row"><span class="info-lbl">Link code</span><span class="info-val cyan" id="info-link-code">------</span></div>
+          <div class="info-row"><span class="info-lbl">LAN endpoint</span><span class="info-val" id="info-lan">Resolving…</span></div>
+          <div class="info-row"><span class="info-lbl">OBS widget</span><span class="info-val" id="info-obs">--</span></div>
+          <div class="info-row"><span class="info-lbl">Discovery beacon</span><span class="info-val">UDP :9001</span></div>
         </section>
 
         <section class="card about-card">

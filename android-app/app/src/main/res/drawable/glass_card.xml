@@ -1,54 +1,57 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Liquid-glass card: translucent white body over the aurora, a 1dp hairline,
-  a specular wash in the top third and a bright top edge that fades left→right
-  (the "light source is up and to the left" cue).
+  Tier-1 glass card (NX §4). Real blur is never worth it on mobile GPUs, so the
+  frosted look is synthesized: a glass-1 diagonal fill (light collects top-left,
+  drains into a cool panel shadow bottom-right), a 1dp hairline, a bright top-left
+  edge and a shadowed bottom-right one. The gloss lives in the body gradient rather
+  than in a clipped band, which would leave a seam where the band ends.
+
+  Radius = radius (18dp).
 -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Body + uniform hairline -->
+    <!-- Body: glass-1, 315° = top-left → bottom-right, matching the global light. -->
     <item>
         <shape android:shape="rectangle">
-            <corners android:radius="24dp" />
-            <solid android:color="@color/glass_fill" />
+            <corners android:radius="18dp" />
+            <gradient
+                android:angle="315"
+                android:centerColor="@color/glass_fill_mid"
+                android:endColor="@color/glass_fill_deep"
+                android:startColor="@color/glass_fill_lit"
+                android:type="linear" />
             <stroke
                 android:width="1dp"
                 android:color="@color/glass_hairline" />
         </shape>
     </item>
 
-    <!-- Specular sheen: white 10% → 0 down the top third -->
-    <item
-        android:gravity="top|fill_horizontal"
-        android:height="88dp"
-        android:left="1dp"
-        android:right="1dp"
-        android:top="1dp">
-        <shape android:shape="rectangle">
-            <corners
-                android:bottomLeftRadius="0dp"
-                android:bottomRightRadius="0dp"
-                android:topLeftRadius="23dp"
-                android:topRightRadius="23dp" />
-            <gradient
-                android:angle="270"
-                android:endColor="@color/glass_specular_none"
-                android:startColor="@color/glass_specular_top"
-                android:type="linear" />
-        </shape>
-    </item>
-
-    <!-- Bright top edge, 40% → 5% across the flat span between the corner arcs -->
+    <!-- Lit edge: 45% → 5% across the flat span between the corner arcs. -->
     <item
         android:gravity="top|fill_horizontal"
         android:height="1dp"
-        android:left="24dp"
-        android:right="24dp">
+        android:left="18dp"
+        android:right="18dp">
         <shape android:shape="rectangle">
             <gradient
                 android:angle="0"
                 android:endColor="@color/glass_hairline_fade"
                 android:startColor="@color/glass_hairline_bright"
+                android:type="linear" />
+        </shape>
+    </item>
+
+    <!-- Shadowed edge: the same hairline on the far side of the light, inverted. -->
+    <item
+        android:gravity="bottom|fill_horizontal"
+        android:height="1dp"
+        android:left="18dp"
+        android:right="18dp">
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="0"
+                android:endColor="@color/glass_edge_shadow"
+                android:startColor="@color/glass_specular_none"
                 android:type="linear" />
         </shape>
     </item>

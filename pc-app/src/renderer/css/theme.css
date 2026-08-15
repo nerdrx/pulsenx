@@ -1,44 +1,109 @@
-/* PulseNX — theme tokens, reset, typography, keyframes */
+/* PulseNX — the NX design language: "liquid glass on deep space".
+ *
+ * The token block below is copied VERBATIM from nx-hub/docs/DESIGN.md §2; it is
+ * the contract every other rule in this app composes from. Only the PulseNX
+ * additions underneath it (the vitals identity red, the zone ramp, the beat
+ * clock) belong to this app.
+ *
+ * Layering, per DESIGN.md §4:
+ *   nebula   — three slow radial blobs + a static starfield behind everything;
+ *              the light the frosted layers refract. transform-only, parked
+ *              when the document is hidden, frozen under reduced motion.
+ *   Bar      — app header and sidebar: REAL backdrop-filter (2 elements total).
+ *   tier 1   — cards: FAKED glass (translucent gradient fill + a masked
+ *              gradient border), because a dashboard shows a dozen at once.
+ *   tier 2   — the overlay widget and the OBS card: fill alpha carries the
+ *              legibility, blur is only the finish.
+ *   wells    — recessed regions inside cards (stat boxes, troughs, inputs).
+ *              Glass holds wells; wells never hold glass.
+ */
 
 :root {
-  /* Space palette */
-  --bg-0: #0a0512;
-  --bg-1: #12081f;
-  --bg-2: #180c29;
-  --panel: rgba(24, 12, 41, 0.62);
-  --panel-solid: #170b28;
-  --stroke: rgba(160, 110, 255, 0.16);
-  --stroke-strong: rgba(160, 110, 255, 0.34);
-
-  /* Brand */
+  /* brand (frozen — never restyle these) */
+  --bg-top: #0a0714;
+  --bg-bottom: #12091f;
+  --panel: #171028;
+  --panel-2: #1d1433;
   --violet: #7700ff;
-  --violet-lt: #9d3bff;
-  --violet-soft: rgba(119, 0, 255, 0.18);
+  --violet-soft: #9a3cff;
   --cyan: #00e5ff;
-  --cyan-soft: rgba(0, 229, 255, 0.16);
-  --red: #ff2d55;
-  --red-soft: rgba(255, 45, 85, 0.16);
-  --green: #2fe08a;
-  --amber: #ffb020;
+  --amber: #ffb300;
+  --text: #efeaff;
+  --muted: #9a8fc0;
+  --line: #2a1f45;
+  --danger: #ff5470;
 
-  /* Text */
-  --txt: #f2ecff;
-  --txt-2: #b8a8d6;
-  --txt-3: #7c6b9c;
+  /* geometry */
+  --radius: 18px;      /* cards, sheets */
+  --radius-sm: 12px;   /* rows, wells, inputs */
+  --radius-xs: 8px;    /* chips, code */
+  --pill: 999px;       /* buttons, tabs, badges */
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", Cantarell, sans-serif;
+  --mono: ui-monospace, "JetBrains Mono", "Fira Code", Consolas, monospace;
 
-  /* Shape */
-  --r-lg: 18px;
-  --r-md: 13px;
-  --r-sm: 9px;
-  --shadow: 0 18px 46px rgba(0, 0, 0, 0.55);
-  --glow-violet: 0 0 22px rgba(119, 0, 255, 0.45);
-  --glow-cyan: 0 0 18px rgba(0, 229, 255, 0.35);
+  /* glass fills — light collects top-left and drains to a cool shadow */
+  --glass-bar: linear-gradient(180deg, rgba(46, 30, 78, 0.62) 0%, rgba(18, 11, 34, 0.72) 100%);
+  --glass-1: linear-gradient(157deg, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0.026) 34%,
+      rgba(23, 16, 40, 0.34) 100%);
+  --glass-2: linear-gradient(158deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.03) 30%,
+      rgba(19, 12, 34, 0.66) 100%);
+  --glass-chip: linear-gradient(180deg, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0.028) 100%);
+  --well: linear-gradient(180deg, rgba(7, 4, 16, 0.5) 0%, rgba(7, 4, 16, 0.32) 100%);
+  --well-deep: linear-gradient(180deg, rgba(4, 2, 10, 0.62) 0%, rgba(4, 2, 10, 0.46) 100%);
 
-  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
-          "Noto Sans", "Liberation Sans", sans-serif;
-  --mono: ui-monospace, "Cascadia Mono", "Segoe UI Mono", "DejaVu Sans Mono",
-          "Liberation Mono", Menlo, Consolas, monospace;
+  /* blur strengths — ONLY these three exist */
+  --blur-bar: blur(22px) saturate(170%);
+  --blur-sheet: blur(34px) saturate(185%);
+  --blur-chip: blur(16px) saturate(160%);
 
+  /* lit edges — 1px gradient borders, bright top-left → dark bottom-right */
+  --edge: linear-gradient(147deg, rgba(255, 255, 255, 0.34) 0%, rgba(255, 255, 255, 0.09) 24%,
+      rgba(255, 255, 255, 0.015) 52%, rgba(0, 0, 0, 0.34) 100%);
+  --edge-lit: linear-gradient(147deg, rgba(226, 200, 255, 0.62) 0%, rgba(154, 60, 255, 0.28) 30%,
+      rgba(0, 229, 255, 0.1) 58%, rgba(0, 0, 0, 0.3) 100%);
+  --edge-top: rgba(255, 255, 255, 0.18);
+  --hairline: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.09) 18%,
+      rgba(255, 255, 255, 0.13) 50%, rgba(255, 255, 255, 0.09) 82%, rgba(255, 255, 255, 0) 100%);
+  --sheen: linear-gradient(112deg, rgba(255, 255, 255, 0) 30%, rgba(255, 255, 255, 0.085) 45%,
+      rgba(214, 190, 255, 0.05) 52%, rgba(255, 255, 255, 0) 68%);
+
+  /* elevation */
+  --shadow: 0 14px 34px -12px rgba(0, 0, 0, 0.72), 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-lift: 0 26px 54px -16px rgba(0, 0, 0, 0.8), 0 0 40px -8px rgba(119, 0, 255, 0.34);
+  --shadow-bar: 0 20px 44px -24px rgba(0, 0, 0, 0.9), 0 1px 0 rgba(255, 255, 255, 0.04);
+  --shadow-sheet: 0 48px 96px -32px rgba(0, 0, 0, 0.86), 0 0 0 1px rgba(255, 255, 255, 0.06);
+  --focus-ring: 0 0 0 2px rgba(119, 0, 255, 0.6), 0 0 0 5px rgba(119, 0, 255, 0.2);
+
+  /* motion */
+  --ease-spring: cubic-bezier(0.32, 1.35, 0.42, 1);  /* overshoots — pills, tab indicator */
+  --ease-soft: cubic-bezier(0.2, 0.8, 0.2, 1);       /* default interactive */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);         /* entrances */
+  --dur-fast: 150ms;
+  --dur: 220ms;
+  --dur-slow: 320ms;
+
+  /* 8px rhythm */
+  --sp-1: 8px;
+  --sp-2: 16px;
+  --sp-3: 24px;
+  --sp-4: 32px;
+
+  /* ---------------------------------------------------- PulseNX additions */
+  /* The vitals identity: heart red is this app's own mark colour and the BPM
+     series' colour. It is never a UI accent — violet leads, cyan accents. */
+  --heart: #ff2d55;
+  --heart-glow: rgba(255, 45, 85, 0.55);
+
+  /* Training zones read as one luminous intensity ramp inside the NX band
+     (cyan → violet → magenta → heart red). Amber stays reserved for
+     "attention", so it is not a zone colour. */
+  --zone-warmup: #00e5ff;
+  --zone-fatburn: #9a3cff;
+  --zone-aerobic: #c74bff;
+  --zone-anaerobic: #ff3ea5;
+  --zone-extreme: #ff2d55;
+
+  /* Set by the renderer from the real beat interval. */
   --beat-duration: 1s;
 }
 
@@ -48,74 +113,151 @@ html, body { height: 100%; }
 
 body {
   font-family: var(--font);
-  color: var(--txt);
-  background:
-    radial-gradient(1100px 620px at 12% -8%, rgba(119, 0, 255, 0.20), transparent 62%),
-    radial-gradient(900px 520px at 108% 4%, rgba(0, 229, 255, 0.10), transparent 60%),
-    radial-gradient(700px 700px at 60% 120%, rgba(119, 0, 255, 0.10), transparent 65%),
-    linear-gradient(160deg, var(--bg-1) 0%, var(--bg-0) 55%, #07030d 100%);
-  background-attachment: fixed;
+  font-size: 14px;
+  line-height: 1.45;
+  letter-spacing: 0.005em;
+  color: var(--text);
+  background: radial-gradient(120% 90% at 50% 0%, #140b26 0%, transparent 55%),
+    linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 100%) fixed;
   overflow: hidden;
-  font-size: 15px;
   -webkit-font-smoothing: antialiased;
 }
 
-/* faint starfield grid */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.022) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.022) 1px, transparent 1px);
-  background-size: 46px 46px;
-  mask-image: radial-gradient(circle at 50% 30%, #000 0%, transparent 78%);
-  -webkit-mask-image: radial-gradient(circle at 50% 30%, #000 0%, transparent 78%);
-  z-index: 0;
-}
-
-h1, h2, h3 { font-weight: 800; letter-spacing: -0.02em; }
+h1, h2, h3 { font-weight: 650; letter-spacing: -0.012em; }
 
 code {
   font-family: var(--mono);
   font-size: 0.86em;
-  color: var(--cyan);
-  background: rgba(0, 229, 255, 0.08);
-  border-radius: 5px;
+  color: #dcc9ff;
+  background: rgba(119, 0, 255, 0.18);
+  border-radius: 4px;
   padding: 1px 5px;
 }
 
 .hidden { display: none !important; }
 [hidden] { display: none !important; }
 .cyan { color: var(--cyan); }
-.violet { color: var(--violet-lt); }
-.red { color: var(--red); }
+.violet { color: #c9a6ff; }
+.red { color: var(--heart); }
+.muted { color: var(--muted); }
 
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, rgba(119, 0, 255, 0.55), rgba(119, 0, 255, 0.25));
-  border-radius: 99px;
   border: 3px solid transparent;
-  background-clip: padding-box;
+  background-clip: content-box;
+  border-radius: var(--pill);
+  background-color: rgba(154, 60, 255, 0.3);
 }
-::-webkit-scrollbar-thumb:hover { background-color: rgba(157, 59, 255, 0.8); }
+::-webkit-scrollbar-thumb:hover { background-color: rgba(154, 60, 255, 0.55); }
+::-webkit-scrollbar-corner { background: transparent; }
 
 ::selection { background: rgba(119, 0, 255, 0.45); color: #fff; }
 
-:focus-visible {
-  outline: 2px solid var(--cyan);
-  outline-offset: 2px;
+/* One violet focus ring for everything interactive — never a bare outline. */
+:where(button, a, input, select, textarea, [tabindex]):focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
 }
 
-/* ---------------- keyframes ---------------- */
+/* ------------------------------------------------------------------ nebula */
+/* Three enormous, very low alpha blobs of coloured light: violet upper-left,
+   cyan lower-right, deep magenta below. Nothing else in the app moves this
+   slowly — 74/96/110 s periods, alternating, transform-only. They are what the
+   frosted layers have to refract. */
+
+.nebula {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  contain: strict;
+}
+.neb {
+  position: absolute;
+  display: block;
+  border-radius: 50%;
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
+}
+.neb-1 {
+  width: 92vw;
+  height: 92vw;
+  left: -28vw;
+  top: -34vw;
+  background: radial-gradient(closest-side, rgba(126, 12, 255, 0.4), rgba(119, 0, 255, 0.14) 44%, transparent 72%);
+  animation: neb-drift-a 74s ease-in-out infinite alternate;
+}
+.neb-2 {
+  width: 72vw;
+  height: 72vw;
+  right: -20vw;
+  bottom: -22vw;
+  background: radial-gradient(closest-side, rgba(0, 190, 235, 0.28), rgba(0, 150, 200, 0.09) 42%, transparent 70%);
+  animation: neb-drift-b 96s ease-in-out infinite alternate;
+}
+.neb-3 {
+  width: 80vw;
+  height: 80vw;
+  left: 16vw;
+  bottom: -46vw;
+  background: radial-gradient(closest-side, rgba(186, 0, 156, 0.28), rgba(119, 0, 255, 0.12) 44%, transparent 72%);
+  animation: neb-drift-c 110s ease-in-out infinite alternate;
+}
+/* A vignette keeps the corners deep-space dark so the blobs read as light. */
+.nebula::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(120% 80% at 50% 42%, transparent 30%, rgba(6, 3, 14, 0.55) 100%);
+}
+@keyframes neb-drift-a {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to   { transform: translate3d(13vw, 9vh, 0) scale(1.16); }
+}
+@keyframes neb-drift-b {
+  from { transform: translate3d(0, 0, 0) scale(1.08); }
+  to   { transform: translate3d(-12vw, -14vh, 0) scale(0.92); }
+}
+@keyframes neb-drift-c {
+  from { transform: translate3d(0, 0, 0) scale(0.95); }
+  to   { transform: translate3d(-10vw, -12vh, 0) scale(1.18); }
+}
+/* Parked by app.js on visibilitychange — an unseen window animates nothing. */
+body.sky-parked .neb { animation-play-state: paused; }
+
+/* Starfield: sparse, tiny, static points. Decoration, not attraction — one
+   painted layer, no elements, no animation. */
+.starfield {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.32;
+  background-image:
+    radial-gradient(1.4px 1.4px at 12% 18%, rgba(255, 255, 255, 0.85), transparent),
+    radial-gradient(1.2px 1.2px at 27% 62%, rgba(214, 190, 255, 0.7), transparent),
+    radial-gradient(1.6px 1.6px at 41% 12%, rgba(255, 255, 255, 0.7), transparent),
+    radial-gradient(1.2px 1.2px at 58% 78%, rgba(160, 235, 255, 0.65), transparent),
+    radial-gradient(1.4px 1.4px at 69% 32%, rgba(255, 255, 255, 0.75), transparent),
+    radial-gradient(1.2px 1.2px at 83% 66%, rgba(214, 190, 255, 0.6), transparent),
+    radial-gradient(1.5px 1.5px at 91% 21%, rgba(255, 255, 255, 0.7), transparent),
+    radial-gradient(1.2px 1.2px at 8% 84%, rgba(160, 235, 255, 0.55), transparent),
+    radial-gradient(1.3px 1.3px at 35% 91%, rgba(255, 255, 255, 0.6), transparent),
+    radial-gradient(1.2px 1.2px at 76% 8%, rgba(214, 190, 255, 0.6), transparent);
+  mask-image: radial-gradient(120% 90% at 50% 30%, #000 10%, transparent 82%);
+  -webkit-mask-image: radial-gradient(120% 90% at 50% 30%, #000 10%, transparent 82%);
+}
+
+/* -------------------------------------------------------------- keyframes */
+
 @keyframes beat {
   0%, 100% { transform: scale(1); }
   14%      { transform: scale(1.26); }
-  28%      { transform: scale(1.0); }
+  28%      { transform: scale(1); }
   42%      { transform: scale(1.12); }
-  60%      { transform: scale(1.0); }
+  60%      { transform: scale(1); }
 }
 
 @keyframes recPulse {
@@ -139,11 +281,42 @@ code {
   to   { transform: rotate(360deg); }
 }
 
-@keyframes fadeUp {
+/* View change: 180 ms crossfade + an 8 px slide. Transform/opacity only. */
+@keyframes view-in {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: none; }
 }
 
+/* The luminous band that travels along a progress fill. */
+@keyframes fill-sheen {
+  0%        { transform: translateX(-100%); }
+  60%, 100% { transform: translateX(220%); }
+}
+
+/* ---------------------------------------------------------- reduced motion */
+/* Non-negotiable (§6): nebula frozen, sheens off, springs replaced, every
+   transition collapsed to opacity. */
+
 @media (prefers-reduced-motion: reduce) {
-  * { animation-duration: 0.001ms !important; transition-duration: 0.06s !important; }
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition-property: opacity !important;
+    transition-duration: 120ms !important;
+    scroll-behavior: auto !important;
+  }
+  .neb { animation: none !important; }
+  .starfield { display: none; }
+  .card:hover,
+  .btn:hover:not(:disabled),
+  .btn:active:not(:disabled),
+  .stat-box:hover,
+  .nav-item:hover {
+    transform: none !important;
+  }
+  .card::after,
+  .meter-fill::after,
+  .zone-seg::after { display: none; }
+  .side-nav::before { transition: none !important; }
 }

@@ -25,10 +25,20 @@ function widgetHtml(wsPort) {
 <meta charset="utf-8">
 <title>PulseNX — OBS Source</title>
 <style>
+  /* The NX design language, inlined: this page must be self-contained, so the
+     tokens it needs are copied here rather than linked. Tier 2 (a surface that
+     floats over someone else's stream content), but with NO backdrop-filter —
+     an OBS browser source composites over video, so the fill alpha is what
+     carries the legibility, exactly as DESIGN.md §4 requires of menus/toasts. */
   :root {
     --nx-violet: #7700FF;
+    --nx-violet-soft: #9a3cff;
     --nx-cyan: #00e5ff;
     --nx-red: #ff2d55;
+    --nx-text: #efeaff;
+    --nx-muted: #9a8fc0;
+    --nx-font: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", Cantarell, sans-serif;
+    --nx-mono: ui-monospace, "JetBrains Mono", "Fira Code", Consolas, monospace;
   }
   * { box-sizing: border-box; }
   html, body {
@@ -36,28 +46,46 @@ function widgetHtml(wsPort) {
     padding: 0;
     background: transparent;
     /* System stack only — the widget must render identically offline. */
-    font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, system-ui, sans-serif;
-    color: #fff;
+    font-family: var(--nx-font);
+    color: var(--nx-text);
     user-select: none;
     -webkit-user-select: none;
   }
-  body { display: flex; align-items: center; padding: 14px 18px; }
+  body { display: flex; align-items: center; padding: 16px; }
   .card {
+    position: relative;
     display: flex;
     align-items: center;
-    gap: 14px;
-    padding: 12px 20px;
+    gap: 16px;
+    padding: 16px 24px;
     border-radius: 18px;
-    background: rgba(10, 5, 18, 0.72);
-    border: 1px solid rgba(119, 0, 255, 0.45);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45), 0 0 24px rgba(119, 0, 255, 0.18);
-    backdrop-filter: blur(12px);
+    /* Light collects top-left and drains to a cool shadow. */
+    background: linear-gradient(158deg, rgba(60, 40, 102, 0.9) 0%, rgba(30, 19, 54, 0.9) 34%,
+        rgba(13, 8, 25, 0.92) 100%);
+    box-shadow: 0 48px 96px -32px rgba(0, 0, 0, 0.86), 0 0 40px -8px rgba(119, 0, 255, 0.34);
+    isolation: isolate;
+    transition: opacity 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
   }
-  .card.stale { opacity: 0.55; border-color: rgba(255, 255, 255, 0.12); }
+  /* The lit 1 px edge, painted as a masked gradient border. */
+  .card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(147deg, rgba(226, 200, 255, 0.62) 0%, rgba(154, 60, 255, 0.28) 30%,
+        rgba(0, 229, 255, 0.1) 58%, rgba(0, 0, 0, 0.3) 100%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+  .card.stale { opacity: 0.55; }
   .heart {
     width: 34px; height: 34px;
     color: var(--nx-red);
-    filter: drop-shadow(0 0 8px rgba(255, 45, 85, 0.75));
+    filter: drop-shadow(0 0 10px rgba(255, 45, 85, 0.6));
     animation: beat 1s infinite ease-in-out;
     transform-origin: center;
   }
@@ -65,27 +93,30 @@ function widgetHtml(wsPort) {
   .readout { display: flex; flex-direction: column; line-height: 1; }
   .row { display: flex; align-items: baseline; gap: 8px; }
   .bpm {
+    font-family: var(--nx-mono);
     font-size: 40px;
-    font-weight: 800;
-    letter-spacing: -1px;
-    background: linear-gradient(135deg, #ffffff 0%, var(--nx-cyan) 100%);
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    background: linear-gradient(180deg, #ffffff 25%, #ffb3c4 120%);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
   }
   .stress {
+    font-family: var(--nx-mono);
     font-size: 15px;
     font-weight: 700;
-    color: var(--nx-violet);
-    text-shadow: 0 0 10px rgba(119, 0, 255, 0.7);
+    color: var(--nx-cyan);
+    text-shadow: 0 0 12px rgba(0, 229, 255, 0.5);
   }
   .stress.hidden { display: none; }
+  /* Uppercase micro-label with wide tracking — the NX chip language. */
   .label {
-    margin-top: 5px;
+    margin-top: 8px;
     font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 2px;
-    color: var(--nx-cyan);
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    color: var(--nx-muted);
     text-transform: uppercase;
   }
   @keyframes beat {
@@ -93,6 +124,9 @@ function widgetHtml(wsPort) {
     14% { transform: scale(1.22); }
     28% { transform: scale(1); }
     42% { transform: scale(1.12); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
   }
 </style>
 </head>

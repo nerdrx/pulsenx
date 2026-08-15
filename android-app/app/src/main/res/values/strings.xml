@@ -5,7 +5,7 @@
     <!-- Frozen by contract even though the redesigned header no longer uses it. -->
     <string name="app_subtitle" tools:ignore="UnusedResources">made with Claude</string>
 
-    <string name="label_live_hr">LIVE HEART RATE</string>
+    <string name="label_live_hr">Live heart rate</string>
     <string name="label_bpm">BPM</string>
     <!-- Frozen by contract; the section header it labelled is now a card title. -->
     <string name="label_link" tools:ignore="UnusedResources">LINK</string>
@@ -17,16 +17,16 @@
 
     <string name="action_link_pc">Link PC</string>
     <string name="action_unlink_pc">Disconnect</string>
-    <string name="action_scan_watch">Scan &amp; Link Watch</string>
-    <string name="action_stop_scan">Stop Scanning</string>
-    <string name="action_watch_linked">Watch Linked</string>
+    <string name="action_scan_watch">Scan and link watch</string>
+    <string name="action_stop_scan">Stop scanning</string>
+    <string name="action_watch_linked">Watch linked</string>
 
     <string name="status_pc_offline">Not linked</string>
     <string name="status_watch_offline">Offline</string>
     <string name="status_watch_scanning">Scanning…</string>
     <string name="status_watch_live">Streaming</string>
 
-    <string name="hint_unpair">Long-press Scan to unpair the saved watch</string>
+    <string name="hint_unpair">Long-press the scan button to unpair the saved watch.</string>
 
     <!-- ===== UI chrome (owned by the UI layer; logic-facing strings live in strings_health.xml) ===== -->
     <string name="title_large">PulseNX</string>
@@ -35,10 +35,10 @@
     <string name="placeholder_value">--</string>
 
     <!-- Card 1: PC link -->
-    <string name="card_pc_title">PC Link</string>
+    <string name="card_pc_title">PC link</string>
 
     <!-- Card 2: heart-rate source -->
-    <string name="card_source_title">Heart-Rate Source</string>
+    <string name="card_source_title">Heart-rate source</string>
     <string name="seg_source_watch">Watch</string>
     <string name="seg_source_health">Huawei Health</string>
     <string name="card_source_caption">Stream beats live from a BLE watch, or read them from Health Connect.</string>
@@ -49,11 +49,11 @@
     <!-- Card 4: health -->
     <string name="card_health_title">Huawei Health / Google Fit</string>
     <string name="card_health_caption">Reads today\'s activity through Health Connect and forwards a summary to your PC.</string>
-    <string name="action_health_permissions">Grant Health Access</string>
-    <string name="label_hc_write">Write HR to Health Connect</string>
-    <string name="desc_hc_write">Save watch beats into your health data</string>
+    <string name="action_health_permissions">Grant health access</string>
+    <string name="label_hc_write">Write heart rate to Health Connect</string>
+    <string name="desc_hc_write">Saves watch beats into your health data</string>
     <string name="label_fit_mirror">Mirror to Google Fit</string>
-    <string name="desc_fit_mirror">Re-publish Huawei records so other apps see them</string>
+    <string name="desc_fit_mirror">Republishes Huawei records so other apps can see them</string>
     <string name="tile_steps">Steps</string>
     <string name="tile_kcal">Calories</string>
     <string name="tile_sleep">Sleep</string>

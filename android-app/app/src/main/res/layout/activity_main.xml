@@ -31,18 +31,18 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingStart="20dp"
-            android:paddingTop="20dp"
-            android:paddingEnd="20dp"
-            android:paddingBottom="36dp">
+            android:paddingStart="16dp"
+            android:paddingTop="16dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="32dp">
 
             <!-- ===================== Large-title header ===================== -->
 
             <ImageView
                 android:id="@+id/ivLogo"
-                android:layout_width="46dp"
-                android:layout_height="46dp"
-                android:layout_marginBottom="14dp"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginBottom="16dp"
                 android:contentDescription="@string/app_name"
                 android:src="@drawable/logo_pulsenx" />
 
@@ -55,7 +55,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
+                android:layout_marginTop="8dp"
                 android:text="@string/header_subtitle"
                 style="@style/NxText.HeaderSubtitle" />
 
@@ -76,7 +76,7 @@
                 <EditText
                     android:id="@+id/etTarget"
                     android:layout_width="match_parent"
-                    android:layout_height="54dp"
+                    android:layout_height="56dp"
                     android:layout_marginTop="16dp"
                     android:background="@drawable/field_glass"
                     android:hint="@string/hint_target"
@@ -84,8 +84,8 @@
                     android:importantForAutofill="no"
                     android:inputType="textCapCharacters|textNoSuggestions"
                     android:maxLines="1"
-                    android:paddingStart="18dp"
-                    android:paddingEnd="18dp"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
                     android:textColor="@color/nx_text"
                     android:textColorHint="@color/nx_dim"
                     android:textCursorDrawable="@null"
@@ -94,15 +94,15 @@
                 <Button
                     android:id="@+id/btnLinkPc"
                     android:layout_width="match_parent"
-                    android:layout_height="54dp"
-                    android:layout_marginTop="12dp"
+                    android:layout_height="56dp"
+                    android:layout_marginTop="16dp"
                     android:text="@string/action_link_pc"
                     style="@style/NxPill.Primary" />
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
+                    android:layout_marginTop="8dp"
                     android:text="@string/hint_helper"
                     style="@style/NxText.Caption" />
 
@@ -110,7 +110,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
                     android:layout_marginTop="16dp"
-                    android:layout_marginBottom="14dp"
+                    android:layout_marginBottom="16dp"
                     android:background="@drawable/hairline_divider" />
 
                 <LinearLayout
@@ -131,7 +131,7 @@
                         android:id="@+id/tvStatusPc"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="12dp"
+                        android:layout_marginStart="16dp"
                         android:gravity="end"
                         android:text="@string/status_pc_offline"
                         style="@style/NxText.StatusValue" />
@@ -143,7 +143,7 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="14dp"
+                android:layout_marginTop="16dp"
                 style="@style/NxCard">
 
                 <TextView
@@ -164,7 +164,7 @@
                     <TextView
                         android:id="@+id/segSourceBle"
                         android:layout_width="0dp"
-                        android:layout_height="44dp"
+                        android:layout_height="48dp"
                         android:layout_weight="1"
                         android:text="@string/seg_source_watch"
                         style="@style/NxSegment" />
@@ -172,7 +172,7 @@
                     <TextView
                         android:id="@+id/segSourceHealth"
                         android:layout_width="0dp"
-                        android:layout_height="44dp"
+                        android:layout_height="48dp"
                         android:layout_marginStart="4dp"
                         android:layout_weight="1"
                         android:text="@string/seg_source_health"
@@ -182,7 +182,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
+                    android:layout_marginTop="8dp"
                     android:text="@string/card_source_caption"
                     style="@style/NxText.Caption" />
 
@@ -203,7 +203,7 @@
                     <Button
                         android:id="@+id/btnScanWatch"
                         android:layout_width="match_parent"
-                        android:layout_height="54dp"
+                        android:layout_height="56dp"
                         android:text="@string/action_scan_watch"
                         style="@style/NxPill.Secondary" />
 
@@ -212,7 +212,7 @@
                         style="?android:attr/progressBarStyleHorizontal"
                         android:layout_width="match_parent"
                         android:layout_height="4dp"
-                        android:layout_marginTop="14dp"
+                        android:layout_marginTop="16dp"
                         android:background="@drawable/progress_track_glass"
                         android:indeterminate="true"
                         android:indeterminateTint="@color/nx_accent_soft"
@@ -239,7 +239,7 @@
                             android:id="@+id/tvStatusWatch"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="12dp"
+                            android:layout_marginStart="16dp"
                             android:gravity="end"
                             android:text="@string/status_watch_offline"
                             style="@style/NxText.StatusValue" />
@@ -248,7 +248,7 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
+                        android:layout_marginTop="8dp"
                         android:text="@string/hint_unpair"
                         style="@style/NxText.Caption" />
                 </LinearLayout>
@@ -259,13 +259,13 @@
             <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="14dp"
+                android:layout_marginTop="16dp"
                 android:background="@drawable/glass_card"
-                android:padding="20dp">
+                android:padding="16dp">
 
                 <ImageView
-                    android:layout_width="86dp"
-                    android:layout_height="86dp"
+                    android:layout_width="88dp"
+                    android:layout_height="88dp"
                     android:layout_gravity="top|end"
                     android:alpha="0.22"
                     android:contentDescription="@string/cd_heart_accent"
@@ -288,7 +288,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_gravity="center_horizontal"
-                        android:layout_marginTop="10dp"
+                        android:layout_marginTop="8dp"
                         android:fontFamily="sans-serif"
                         android:includeFontPadding="false"
                         android:letterSpacing="-0.05"
@@ -301,7 +301,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_gravity="center_horizontal"
-                        android:layout_marginTop="6dp"
+                        android:layout_marginTop="8dp"
                         android:letterSpacing="0.24"
                         android:text="@string/label_bpm"
                         android:textColor="@color/nx_heart"
@@ -315,7 +315,7 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="14dp"
+                android:layout_marginTop="16dp"
                 style="@style/NxCard">
 
                 <TextView
@@ -334,7 +334,7 @@
                 <Button
                     android:id="@+id/btnHcPermissions"
                     android:layout_width="match_parent"
-                    android:layout_height="54dp"
+                    android:layout_height="56dp"
                     android:layout_marginTop="16dp"
                     android:text="@string/action_health_permissions"
                     style="@style/NxPill.Secondary" />
@@ -342,7 +342,7 @@
                 <View
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
-                    android:layout_marginTop="18dp"
+                    android:layout_marginTop="16dp"
                     android:background="@drawable/hairline_divider" />
 
                 <!-- Write HR into Health Connect -->
@@ -369,7 +369,7 @@
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
+                            android:layout_marginTop="4dp"
                             android:text="@string/desc_hc_write"
                             style="@style/NxText.RowDesc" />
                     </LinearLayout>
@@ -378,7 +378,7 @@
                         android:id="@+id/switchHcWrite"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="14dp"
+                        android:layout_marginStart="16dp"
                         style="@style/NxSwitch" />
                 </LinearLayout>
 
@@ -412,7 +412,7 @@
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
+                            android:layout_marginTop="4dp"
                             android:text="@string/desc_fit_mirror"
                             style="@style/NxText.RowDesc" />
                     </LinearLayout>
@@ -421,7 +421,7 @@
                         android:id="@+id/switchFitMirror"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="14dp"
+                        android:layout_marginStart="16dp"
                         style="@style/NxSwitch" />
                 </LinearLayout>
 
@@ -442,7 +442,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
+                    android:layout_marginTop="8dp"
                     android:text="@string/hw_caption"
                     style="@style/NxText.Caption" />
 
@@ -450,7 +450,7 @@
                     android:id="@+id/etHwClientId"
                     android:layout_width="match_parent"
                     android:layout_height="48dp"
-                    android:layout_marginTop="12dp"
+                    android:layout_marginTop="16dp"
                     android:background="@drawable/field_glass"
                     android:hint="@string/hw_hint_client_id"
                     android:imeOptions="actionNext"
@@ -486,7 +486,7 @@
                     android:id="@+id/btnHwLink"
                     android:layout_width="match_parent"
                     android:layout_height="48dp"
-                    android:layout_marginTop="10dp"
+                    android:layout_marginTop="8dp"
                     android:minHeight="48dp"
                     android:text="@string/hw_action_link"
                     style="@style/NxPill.Secondary" />
@@ -495,7 +495,7 @@
                     android:id="@+id/tvHwStatus"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
+                    android:layout_marginTop="8dp"
                     android:text="@string/hw_status_not_linked"
                     android:textSize="12sp" />
 
@@ -503,13 +503,13 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="18dp"
+                    android:layout_marginTop="24dp"
                     android:baselineAligned="false"
                     android:orientation="horizontal">
 
                     <LinearLayout
                         android:layout_width="0dp"
-                        android:layout_height="wrap_content"
+                        android:layout_height="match_parent"
                         android:layout_marginEnd="8dp"
                         android:layout_weight="1"
                         style="@style/NxTile">
@@ -524,14 +524,14 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="6dp"
+                            android:layout_marginTop="8dp"
                             android:text="@string/tile_steps"
                             style="@style/NxText.TileCaption" />
                     </LinearLayout>
 
                     <LinearLayout
                         android:layout_width="0dp"
-                        android:layout_height="wrap_content"
+                        android:layout_height="match_parent"
                         android:layout_marginEnd="8dp"
                         android:layout_weight="1"
                         style="@style/NxTile">
@@ -546,14 +546,14 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="6dp"
+                            android:layout_marginTop="8dp"
                             android:text="@string/tile_kcal"
                             style="@style/NxText.TileCaption" />
                     </LinearLayout>
 
                     <LinearLayout
                         android:layout_width="0dp"
-                        android:layout_height="wrap_content"
+                        android:layout_height="match_parent"
                         android:layout_marginEnd="8dp"
                         android:layout_weight="1"
                         style="@style/NxTile">
@@ -568,14 +568,14 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="6dp"
+                            android:layout_marginTop="8dp"
                             android:text="@string/tile_sleep"
                             style="@style/NxText.TileCaption" />
                     </LinearLayout>
 
                     <LinearLayout
                         android:layout_width="0dp"
-                        android:layout_height="wrap_content"
+                        android:layout_height="match_parent"
                         android:layout_weight="1"
                         style="@style/NxTile">
 
@@ -589,7 +589,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="6dp"
+                            android:layout_marginTop="8dp"
                             android:text="@string/tile_rhr"
                             style="@style/NxText.TileCaption" />
                     </LinearLayout>
@@ -599,7 +599,7 @@
                     android:id="@+id/tvHealthStatus"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="14dp"
+                    android:layout_marginTop="16dp"
                     android:text="@string/status_health_idle"
                     android:textSize="12sp" />
             </LinearLayout>
@@ -609,7 +609,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="26dp"
+                android:layout_marginTop="24dp"
                 android:gravity="center_horizontal"
                 android:text="@string/footer_signature"
                 style="@style/NxText.Footer" />

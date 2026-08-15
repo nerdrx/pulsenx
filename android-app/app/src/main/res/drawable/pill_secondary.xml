@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Secondary action: glass outline pill. -->
+<!-- Secondary action (NX §5): glass-chip fill with a lit edge, no violet. -->
 <ripple xmlns:android="http://schemas.android.com/apk/res/android"
     android:color="@color/glass_ripple">
 
@@ -8,7 +8,11 @@
             <item>
                 <shape android:shape="rectangle">
                     <corners android:radius="100dp" />
-                    <solid android:color="@color/glass_fill" />
+                    <gradient
+                        android:angle="315"
+                        android:endColor="@color/glass_chip_deep"
+                        android:startColor="@color/glass_chip_lit"
+                        android:type="linear" />
                     <stroke
                         android:width="1dp"
                         android:color="@color/glass_hairline_soft" />
@@ -28,13 +32,27 @@
                         android:type="linear" />
                 </shape>
             </item>
+
+            <item
+                android:gravity="bottom|fill_horizontal"
+                android:height="1dp"
+                android:left="28dp"
+                android:right="28dp">
+                <shape android:shape="rectangle">
+                    <gradient
+                        android:angle="0"
+                        android:endColor="@color/glass_edge_shadow"
+                        android:startColor="@color/glass_specular_none"
+                        android:type="linear" />
+                </shape>
+            </item>
         </layer-list>
     </item>
 
     <item android:id="@android:id/mask">
         <shape android:shape="rectangle">
             <corners android:radius="100dp" />
-            <solid android:color="#ffffffff" />
+            <solid android:color="#FFFFFFFF" />
         </shape>
     </item>
 </ripple>

@@ -1,36 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Small glass tile (mini stats). Same language as glass_card, tighter radius. -->
+<!-- Small tier-1 tile (mini stats). Same language as glass_card. -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
 
     <item>
         <shape android:shape="rectangle">
             <corners android:radius="18dp" />
-            <solid android:color="@color/glass_fill" />
+            <gradient
+                android:angle="315"
+                android:centerColor="@color/glass_fill_mid"
+                android:endColor="@color/glass_fill_deep"
+                android:startColor="@color/glass_fill_lit"
+                android:type="linear" />
             <stroke
                 android:width="1dp"
                 android:color="@color/glass_hairline" />
         </shape>
     </item>
 
-    <item
-        android:gravity="top|fill_horizontal"
-        android:height="30dp"
-        android:left="1dp"
-        android:right="1dp"
-        android:top="1dp">
-        <shape android:shape="rectangle">
-            <corners
-                android:bottomLeftRadius="0dp"
-                android:bottomRightRadius="0dp"
-                android:topLeftRadius="17dp"
-                android:topRightRadius="17dp" />
-            <gradient
-                android:angle="270"
-                android:endColor="@color/glass_specular_none"
-                android:startColor="@color/glass_specular_top"
-                android:type="linear" />
-        </shape>
-    </item>
 
     <item
         android:gravity="top|fill_horizontal"
@@ -42,6 +28,20 @@
                 android:angle="0"
                 android:endColor="@color/glass_hairline_fade"
                 android:startColor="@color/glass_hairline_bright"
+                android:type="linear" />
+        </shape>
+    </item>
+
+    <item
+        android:gravity="bottom|fill_horizontal"
+        android:height="1dp"
+        android:left="16dp"
+        android:right="16dp">
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="0"
+                android:endColor="@color/glass_edge_shadow"
+                android:startColor="@color/glass_specular_none"
                 android:type="linear" />
         </shape>
     </item>

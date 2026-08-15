@@ -4,24 +4,34 @@
 import { $, $$, clockLabel } from './util.js';
 
 const WINDOW = 35;
-const FONT = 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
-const MONO = 'ui-monospace, DejaVu Sans Mono, Consolas, monospace';
+/* Canvas cannot read CSS custom properties, so the NX tokens are mirrored here:
+   --font / --mono, --line (grid), --muted (ticks), heart red for the BPM series
+   (the vitals identity), cyan for live stress, violet for historical stress. */
+const FONT = 'system-ui, -apple-system, Segoe UI, Roboto, Noto Sans, Cantarell, sans-serif';
+const MONO = 'ui-monospace, JetBrains Mono, Fira Code, Consolas, monospace';
+const HEART = '#ff2d55';
+const CYAN = '#00e5ff';
+const VIOLET = '#7700ff';
 
 let live = null;
 let history = null;
 
 const chartLib = () => (typeof window !== 'undefined' ? window.Chart : undefined);
 
-const gridStyle = { color: 'rgba(160,110,255,0.07)', drawTicks: false };
-const tickStyle = { color: '#7c6b9c', font: { family: MONO, size: 10 } };
+const gridStyle = { color: 'rgba(42,31,69,0.85)', drawTicks: false };      // --line
+const tickStyle = { color: '#9a8fc0', font: { family: MONO, size: 10 } };  // --muted
 
+/* Tier-2 in a tooltip: the fill carries the legibility, the lit edge finishes it. */
 function tooltipStyle() {
   return {
-    backgroundColor: 'rgba(14,7,26,0.96)',
-    borderColor: 'rgba(160,110,255,0.35)',
+    backgroundColor: 'rgba(19,12,34,0.96)',
+    borderColor: 'rgba(154,60,255,0.45)',
     borderWidth: 1,
     padding: 10,
-    titleFont: { family: FONT, size: 11, weight: '700' },
+    cornerRadius: 12,
+    titleColor: '#efeaff',
+    bodyColor: '#efeaff',
+    titleFont: { family: FONT, size: 11, weight: '600' },
     bodyFont: { family: MONO, size: 11 },
     displayColors: true
   };
@@ -48,28 +58,28 @@ export function initLiveChart() {
         {
           label: 'Heart Rate (BPM)',
           data: [],
-          borderColor: '#ff2d55',
+          borderColor: HEART,
           backgroundColor: hrFill,
           borderWidth: 2.4,
           tension: 0.35,
           fill: true,
           pointRadius: 0,
           pointHoverRadius: 5,
-          pointHoverBackgroundColor: '#ff2d55',
+          pointHoverBackgroundColor: HEART,
           pointHoverBorderColor: '#fff',
           yAxisID: 'y'
         },
         {
           label: 'Stress Index (%)',
           data: [],
-          borderColor: '#00e5ff',
+          borderColor: CYAN,
           backgroundColor: stressFill,
           borderWidth: 2,
           tension: 0.35,
           fill: true,
           pointRadius: 0,
           pointHoverRadius: 5,
-          pointHoverBackgroundColor: '#00e5ff',
+          pointHoverBackgroundColor: CYAN,
           pointHoverBorderColor: '#fff',
           hidden: true,
           yAxisID: 'y1'
@@ -146,7 +156,7 @@ export function renderHistoryChart(labels, hrData, stressData) {
         {
           label: 'Heart Rate (BPM)',
           data: hrData || [],
-          borderColor: '#ff2d55',
+          borderColor: HEART,
           backgroundColor: 'rgba(255,45,85,0.10)',
           borderWidth: 2,
           tension: 0.3,
@@ -158,8 +168,8 @@ export function renderHistoryChart(labels, hrData, stressData) {
         {
           label: 'Stress Index (%)',
           data: hasStress ? stressData : [],
-          borderColor: '#7700ff',
-          backgroundColor: 'rgba(119,0,255,0.10)',
+          borderColor: VIOLET,
+          backgroundColor: 'rgba(119,0,255,0.14)',
           borderWidth: 1.8,
           tension: 0.3,
           pointRadius: 0,
@@ -177,7 +187,15 @@ export function renderHistoryChart(labels, hrData, stressData) {
       scales: {
         x: { grid: { display: false }, ticks: { ...tickStyle, maxTicksLimit: 12, maxRotation: 0 } },
         y: { position: 'left', grid: gridStyle, ticks: tickStyle },
-        y1: { position: 'right', min: 0, max: 100, display: hasStress, grid: { drawOnChartArea: false }, ticks: tickStyle }
+        y1: {
+          position: 'right',
+          min: 0,
+          max: 100,
+          display: hasStress,
+          grid: { drawOnChartArea: false },
+          // The history view's stress axis is violet, matching its series.
+          ticks: { ...tickStyle, color: '#c9a6ff' }
+        }
       }
     }
   });

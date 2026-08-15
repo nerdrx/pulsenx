@@ -1,6 +1,7 @@
 package com.pulsenx.bridge
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
@@ -13,8 +14,11 @@ import android.provider.Settings
 import android.text.Editable
 import android.text.TextWatcher
 import android.text.format.DateFormat
+import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
+import android.view.animation.DecelerateInterpolator
+import android.view.animation.OvershootInterpolator
 import android.view.inputmethod.InputMethodManager
 import android.widget.Button
 import android.widget.EditText
@@ -42,11 +46,25 @@ class MainActivity : android.app.Activity() {
         const val PERM_REQUEST = 101
         const val HC_PERM_REQUEST = 102
         const val HW_AUTH_REQUEST = 103
-        const val COLOR_OK = 0xFF3ddc84.toInt()
-        const val COLOR_WARN = 0xFFffb020.toInt()
-        const val COLOR_BAD = 0xFFff2d55.toInt()
-        const val COLOR_MUTED = 0xFF9b8fb5.toInt()
+
+        /** NX §5: press scales to 0.96; §6: --dur-fast in, --dur out. */
+        const val PRESS_SCALE = 0.96f
+        const val DUR_FAST = 150L
+        const val DUR = 220L
     }
+
+    /**
+     * Status tints, NX §5: cyan = live/linked, amber = pending attention,
+     * muted = inert. Green is not in the NX palette, and @color/nx_danger stays out
+     * of this screen entirely - red means "destructive", not "not connected yet".
+     *
+     * The live BPM read-out keeps PulseNX's own heart red: that is the app's vitals
+     * identity, not a status colour, and it never stands in for "danger".
+     */
+    private val colorLive by lazy { getColor(R.color.nx_cyan) }
+    private val colorAttention by lazy { getColor(R.color.nx_amber) }
+    private val colorInert by lazy { getColor(R.color.nx_muted) }
+    private val colorVitals by lazy { getColor(R.color.nx_heart) }
 
     private lateinit var etTarget: EditText
     private lateinit var btnLinkPc: Button
@@ -204,7 +222,42 @@ class MainActivity : android.app.Activity() {
 
         bindHealthViews()
         bindHuaweiViews()
+
+        // Every pill and tab on the screen presses the same way (NX §5).
+        btnLinkPc.nxPressFeedback()
+        btnScanWatch.nxPressFeedback()
+        btnHcPermissions.nxPressFeedback()
+        btnHwLink.nxPressFeedback()
+        segSourceBle.nxPressFeedback()
+        segSourceHealth.nxPressFeedback()
+
         renderState()
+    }
+
+    /**
+     * NX §5/§6 press feedback: scale to 0.96 on touch-down over --dur-fast, release on
+     * an overshooting spring over --dur. Transform-only, interruptible, and it never
+     * consumes the event, so click and long-click handling are untouched.
+     */
+    @SuppressLint("ClickableViewAccessibility")
+    private fun View.nxPressFeedback() {
+        setOnTouchListener { view, event ->
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> view.animate()
+                    .scaleX(PRESS_SCALE).scaleY(PRESS_SCALE)
+                    .setDuration(DUR_FAST)
+                    .setInterpolator(DecelerateInterpolator())
+                    .start()
+
+                MotionEvent.ACTION_UP,
+                MotionEvent.ACTION_CANCEL -> view.animate()
+                    .scaleX(1f).scaleY(1f)
+                    .setDuration(DUR)
+                    .setInterpolator(OvershootInterpolator(2.2f))
+                    .start()
+            }
+            false
+        }
     }
 
     // ------------------------------------------------------------------
@@ -274,17 +327,17 @@ class MainActivity : android.app.Activity() {
         when {
             !linked && !hasCredentials -> {
                 tvHwStatus.text = getString(R.string.hw_status_credentials)
-                tvHwStatus.setTextColor(COLOR_MUTED)
+                tvHwStatus.setTextColor(colorInert)
             }
 
             !linked -> {
                 tvHwStatus.text = getString(R.string.hw_status_not_linked)
-                tvHwStatus.setTextColor(COLOR_MUTED)
+                tvHwStatus.setTextColor(colorInert)
             }
 
             HuaweiCloud.isAuthBroken(this) -> {
                 tvHwStatus.text = getString(R.string.hw_status_expired)
-                tvHwStatus.setTextColor(COLOR_BAD)
+                tvHwStatus.setTextColor(colorAttention)
             }
 
             else -> {
@@ -295,7 +348,7 @@ class MainActivity : android.app.Activity() {
                     "—"
                 }
                 tvHwStatus.text = getString(R.string.hw_status_linked, stamp)
-                tvHwStatus.setTextColor(COLOR_OK)
+                tvHwStatus.setTextColor(colorLive)
             }
         }
     }
@@ -399,32 +452,33 @@ class MainActivity : android.app.Activity() {
         if (BridgeEngine.pcConnected) {
             val detail = BridgeEngine.pcDetail.ifEmpty { "Linked" }
             tvStatusPc.text = detail
-            tvStatusPc.setTextColor(COLOR_OK)
+            tvStatusPc.setTextColor(colorLive)
             btnLinkPc.text = getString(R.string.action_unlink_pc)
         } else {
             tvStatusPc.text = BridgeEngine.pcDetail.ifEmpty { getString(R.string.status_pc_offline) }
-            tvStatusPc.setTextColor(if (BridgeEngine.pcDetail.isEmpty()) COLOR_BAD else COLOR_WARN)
+            // Never linked yet is inert, not an error; a detail line means "in progress".
+            tvStatusPc.setTextColor(if (BridgeEngine.pcDetail.isEmpty()) colorInert else colorAttention)
             btnLinkPc.text = getString(R.string.action_link_pc)
         }
 
         when {
             BridgeEngine.watchConnected -> {
                 tvStatusWatch.text = BridgeEngine.watchName.ifEmpty { getString(R.string.status_watch_live) }
-                tvStatusWatch.setTextColor(COLOR_OK)
+                tvStatusWatch.setTextColor(colorLive)
                 btnScanWatch.text = getString(R.string.action_watch_linked)
                 progress.visibility = View.GONE
             }
 
             BridgeEngine.isScanning -> {
                 tvStatusWatch.text = getString(R.string.status_watch_scanning)
-                tvStatusWatch.setTextColor(COLOR_WARN)
+                tvStatusWatch.setTextColor(colorAttention)
                 btnScanWatch.text = getString(R.string.action_stop_scan)
                 progress.visibility = View.VISIBLE
             }
 
             else -> {
                 tvStatusWatch.text = getString(R.string.status_watch_offline)
-                tvStatusWatch.setTextColor(COLOR_BAD)
+                tvStatusWatch.setTextColor(colorInert)
                 btnScanWatch.text = getString(R.string.action_scan_watch)
                 progress.visibility = View.GONE
             }
@@ -438,15 +492,20 @@ class MainActivity : android.app.Activity() {
     private fun renderBpm(bpm: Int) {
         if (bpm <= 0) {
             tvBpm.text = "--"
-            tvBpm.setTextColor(COLOR_MUTED)
+            tvBpm.setTextColor(colorInert)
             return
         }
         tvBpm.text = bpm.toString()
-        tvBpm.setTextColor(COLOR_BAD)
+        tvBpm.setTextColor(colorVitals)
+        // One beat: swell fast, settle on a spring. Transform-only, well under 320ms.
         tvBpm.animate()
             .scaleX(1.12f).scaleY(1.12f).setDuration(90)
             .withEndAction {
-                tvBpm.animate().scaleX(1f).scaleY(1f).setDuration(140).start()
+                tvBpm.animate()
+                    .scaleX(1f).scaleY(1f)
+                    .setDuration(160)
+                    .setInterpolator(OvershootInterpolator(1.6f))
+                    .start()
             }
             .start()
     }
@@ -462,28 +521,28 @@ class MainActivity : android.app.Activity() {
         when (HealthConnectHub.sdkStatus(this)) {
             HealthConnectClient.SDK_UNAVAILABLE -> {
                 tvHealthStatus.text = getString(R.string.health_status_missing)
-                tvHealthStatus.setTextColor(COLOR_BAD)
+                tvHealthStatus.setTextColor(colorAttention)
             }
 
             HealthConnectClient.SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED -> {
                 tvHealthStatus.text = getString(R.string.health_status_update)
-                tvHealthStatus.setTextColor(COLOR_WARN)
+                tvHealthStatus.setTextColor(colorAttention)
             }
 
             else -> when {
                 !hcGranted.containsAll(HealthConnectHub.READ_PERMISSIONS) -> {
                     tvHealthStatus.text = getString(R.string.health_status_permission)
-                    tvHealthStatus.setTextColor(COLOR_WARN)
+                    tvHealthStatus.setTextColor(colorAttention)
                 }
 
                 summary == null -> {
                     tvHealthStatus.text = getString(R.string.health_status_waiting)
-                    tvHealthStatus.setTextColor(COLOR_MUTED)
+                    tvHealthStatus.setTextColor(colorInert)
                 }
 
                 else -> {
                     tvHealthStatus.text = getString(R.string.health_status_ready, summary.source)
-                    tvHealthStatus.setTextColor(COLOR_OK)
+                    tvHealthStatus.setTextColor(colorLive)
                 }
             }
         }

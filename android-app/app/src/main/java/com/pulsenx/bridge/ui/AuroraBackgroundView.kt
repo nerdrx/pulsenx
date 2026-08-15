@@ -3,6 +3,7 @@ package com.pulsenx.bridge.ui
 import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.Canvas
+import android.graphics.LinearGradient
 import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.RadialGradient
@@ -19,15 +20,20 @@ import kotlin.math.max
 import kotlin.math.sin
 
 /**
- * Edge-to-edge "aurora" backdrop: a near-black field with a handful of huge, very
- * soft radial blooms in the PulseNX palette that drift and breathe on slow,
- * mutually-prime loops so the motion never visibly repeats.
+ * The living background of NX Design Language §3: a deep-space field
+ * (`--bg-top → --bg-bottom`, never flat black) carrying two enormous, very
+ * low-alpha nebula blooms - violet biased upper-left, cyan lower-right - plus an
+ * optional deep magenta third, drifting on slow mutually-prime loops so the motion
+ * never visibly repeats. A soft vignette keeps the edges darker than the centre.
+ *
+ * Drift periods sit in the spec's 60-110 s band; nothing here reads as movement
+ * when you look straight at it, which is the point.
  *
  * Pure [Canvas] + one [ValueAnimator] - no Compose, no dependencies, nothing above
  * API 26. The animator only ever runs while the view is attached AND visible AND the
  * window is visible, so it cannot burn battery behind another activity. It also stays
- * off entirely when the user has disabled animations or turned on battery saver;
- * in that case a single static frame is drawn.
+ * off entirely under the system reduced-motion settings or battery saver; in that
+ * case a single static frame is drawn (§6: reduced motion is non-negotiable).
  */
 class AuroraBackgroundView @JvmOverloads constructor(
     context: Context,
@@ -56,50 +62,44 @@ class AuroraBackgroundView @JvmOverloads constructor(
     }
 
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { isDither = true }
+    private val fieldPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { isDither = true }
+    private val vignettePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { isDither = true }
     private val matrix = Matrix()
 
-    private val baseColor = context.getColor(R.color.aurora_base)
+    private val fieldTop = context.getColor(R.color.nx_bg_top)
+    private val fieldBottom = context.getColor(R.color.nx_bg_bottom)
+    private val vignetteColor = context.getColor(R.color.aurora_vignette)
 
     private val blobs = arrayOf(
-        // Violet anchor, top-left - the brand colour carries the composition.
+        // Violet anchor, upper-left - the brand colour carries the composition.
         Blob(
             color = context.getColor(R.color.aurora_blob_violet),
-            peakAlpha = 0.42f,
-            baseX = 0.18f, baseY = 0.14f,
-            driftX = 0.13f, driftY = 0.09f,
-            radius = 0.82f, breath = 0.12f,
-            driftPeriodMs = 27_000f, breathPeriodMs = 19_000f,
+            peakAlpha = 0.28f,
+            baseX = 0.16f, baseY = 0.13f,
+            driftX = 0.10f, driftY = 0.07f,
+            radius = 0.88f, breath = 0.10f,
+            driftPeriodMs = 67_000f, breathPeriodMs = 89_000f,
             phase = 0f
         ),
-        // Cyan highlight, upper-right.
+        // Cyan light source, lower-right - subordinate to the violet, never a surface.
         Blob(
             color = context.getColor(R.color.aurora_blob_cyan),
-            peakAlpha = 0.20f,
-            baseX = 0.90f, baseY = 0.30f,
-            driftX = 0.11f, driftY = 0.14f,
-            radius = 0.55f, breath = 0.16f,
-            driftPeriodMs = 34_000f, breathPeriodMs = 23_000f,
+            peakAlpha = 0.13f,
+            baseX = 0.88f, baseY = 0.80f,
+            driftX = 0.09f, driftY = 0.11f,
+            radius = 0.62f, breath = 0.13f,
+            driftPeriodMs = 83_000f, breathPeriodMs = 71_000f,
             phase = 1.7f
         ),
-        // Heart red, low centre - sits behind the BPM card.
+        // Optional deep magenta third, low-left, keeping the bottom from going flat.
         Blob(
-            color = context.getColor(R.color.aurora_blob_heart),
-            peakAlpha = 0.17f,
-            baseX = 0.62f, baseY = 0.78f,
-            driftX = 0.16f, driftY = 0.08f,
-            radius = 0.60f, breath = 0.14f,
-            driftPeriodMs = 21_000f, breathPeriodMs = 31_000f,
+            color = context.getColor(R.color.aurora_blob_magenta),
+            peakAlpha = 0.10f,
+            baseX = 0.22f, baseY = 0.88f,
+            driftX = 0.12f, driftY = 0.08f,
+            radius = 0.70f, breath = 0.12f,
+            driftPeriodMs = 103_000f, breathPeriodMs = 97_000f,
             phase = 3.1f
-        ),
-        // Deep indigo wash, bottom-left - keeps the lower half from going flat black.
-        Blob(
-            color = context.getColor(R.color.aurora_blob_indigo),
-            peakAlpha = 0.30f,
-            baseX = 0.10f, baseY = 0.94f,
-            driftX = 0.14f, driftY = 0.10f,
-            radius = 0.78f, breath = 0.10f,
-            driftPeriodMs = 39_000f, breathPeriodMs = 26_000f,
-            phase = 4.4f
         )
     )
 
@@ -139,6 +139,8 @@ class AuroraBackgroundView @JvmOverloads constructor(
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
+        // Re-read every time we come back: the user can flip either setting while the
+        // activity sits in the background.
         animationAllowed = animationsEnabled()
         syncAnimation()
     }
@@ -155,6 +157,7 @@ class AuroraBackgroundView @JvmOverloads constructor(
 
     override fun onWindowVisibilityChanged(visibility: Int) {
         super.onWindowVisibilityChanged(visibility)
+        if (visibility == VISIBLE) animationAllowed = animationsEnabled()
         syncAnimation()
     }
 
@@ -181,20 +184,24 @@ class AuroraBackgroundView @JvmOverloads constructor(
         ticker.cancel()
     }
 
-    /** Honour "remove animations" and battery saver: draw one static frame instead. */
+    /**
+     * Honour reduced motion and battery saver: draw one static frame instead.
+     *
+     * Android has no `prefers-reduced-motion`; the closest equivalents are the two
+     * developer/accessibility animation scales, both of which the "remove animations"
+     * accessibility shortcut zeroes. Either one at 0 means the user asked for stillness.
+     */
     private fun animationsEnabled(): Boolean {
-        val scale = try {
-            Settings.Global.getFloat(
-                context.contentResolver,
-                Settings.Global.ANIMATOR_DURATION_SCALE,
-                1f
-            )
-        } catch (_: Exception) {
-            1f
-        }
-        if (scale == 0f) return false
+        if (globalScale(Settings.Global.ANIMATOR_DURATION_SCALE) == 0f) return false
+        if (globalScale(Settings.Global.TRANSITION_ANIMATION_SCALE) == 0f) return false
         val power = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
         return power?.isPowerSaveMode != true
+    }
+
+    private fun globalScale(key: String): Float = try {
+        Settings.Global.getFloat(context.contentResolver, key, 1f)
+    } catch (_: Exception) {
+        1f
     }
 
     // ------------------------------------------------------------------
@@ -203,15 +210,16 @@ class AuroraBackgroundView @JvmOverloads constructor(
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
-        buildShaders()
+        buildShaders(w.toFloat(), h.toFloat())
         syncAnimation()
     }
 
     /**
-     * Shaders are built once in unit space (centre 0,0 / radius 1) and re-aimed every
-     * frame with a local matrix, so no allocation happens on the draw path.
+     * Blob shaders are built once in unit space (centre 0,0 / radius 1) and re-aimed
+     * every frame with a local matrix, so no allocation happens on the draw path.
+     * The field and vignette depend only on the view box, so they are built here too.
      */
-    private fun buildShaders() {
+    private fun buildShaders(w: Float, h: Float) {
         for (blob in blobs) {
             val core = withAlpha(blob.color, blob.peakAlpha)
             val mid = withAlpha(blob.color, blob.peakAlpha * 0.45f)
@@ -223,15 +231,38 @@ class AuroraBackgroundView @JvmOverloads constructor(
                 Shader.TileMode.CLAMP
             )
         }
+
+        if (w <= 0f || h <= 0f) return
+
+        fieldPaint.shader = LinearGradient(
+            0f, 0f, 0f, h,
+            fieldTop, fieldBottom,
+            Shader.TileMode.CLAMP
+        )
+
+        // Vignette: transparent through the middle, deepening to the corners so the
+        // nebula never runs flat off the edges of the screen.
+        vignettePaint.shader = RadialGradient(
+            w * 0.5f, h * 0.44f, max(w, h) * 0.78f,
+            intArrayOf(
+                withAlpha(vignetteColor, 0f),
+                withAlpha(vignetteColor, 0f),
+                vignetteColor
+            ),
+            floatArrayOf(0f, 0.55f, 1f),
+            Shader.TileMode.CLAMP
+        )
     }
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        canvas.drawColor(baseColor)
 
         val w = width.toFloat()
         val h = height.toFloat()
         if (w <= 0f || h <= 0f) return
+
+        // Field first: --bg-top → --bg-bottom, so nothing is ever painted on black.
+        canvas.drawRect(0f, 0f, w, h, fieldPaint)
 
         val span = max(w, h)
         val t = if (isInEditMode || !ticker.isStarted) pausedOffsetMs.toFloat()
@@ -256,6 +287,8 @@ class AuroraBackgroundView @JvmOverloads constructor(
             canvas.drawCircle(cx, cy, r, paint)
         }
         paint.shader = null
+
+        canvas.drawRect(0f, 0f, w, h, vignettePaint)
     }
 
     private fun withAlpha(color: Int, alpha: Float): Int {

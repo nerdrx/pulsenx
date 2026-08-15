@@ -251,6 +251,7 @@ function initEcg() {
   let phase = 0;
   let prevY = 0;
   let last = 0;
+  let rafId = 0;
 
   const resize = () => {
     const dpr = window.devicePixelRatio || 1;
@@ -289,7 +290,7 @@ function initEcg() {
     // wipe the region just ahead of the trace head (classic monitor sweep)
     ctx.clearRect(x, 0, step + 24, height);
 
-    ctx.strokeStyle = live ? '#00e5ff' : 'rgba(124,107,156,0.55)';
+    ctx.strokeStyle = live ? '#00e5ff' : 'rgba(154,143,192,0.5)';
     ctx.lineWidth = 2;
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
@@ -327,7 +328,43 @@ function initEcg() {
     }
     ctx.shadowBlur = 0;
 
-    requestAnimationFrame(frame);
+    rafId = requestAnimationFrame(frame);
   };
-  requestAnimationFrame(frame);
+
+  // The one custom canvas in the app, so it gets the §3 budget treatment: the
+  // rAF loop is parked whenever the document is hidden, and reduced motion
+  // freezes it outright to a single static baseline.
+  const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  const drawStatic = () => {
+    ctx.clearRect(0, 0, width, height);
+    ctx.strokeStyle = 'rgba(154,143,192,0.5)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, height * 0.58);
+    ctx.lineTo(width, height * 0.58);
+    ctx.stroke();
+  };
+
+  const stopLoop = () => {
+    if (rafId) cancelAnimationFrame(rafId);
+    rafId = 0;
+  };
+  const startLoop = () => {
+    if (rafId || document.hidden) return;
+    last = 0;
+    rafId = requestAnimationFrame(frame);
+  };
+
+  if (reduced && reduced.matches) {
+    drawStatic();
+    window.addEventListener('resize', drawStatic);
+    return;
+  }
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) stopLoop();
+    else startLoop();
+  });
+  startLoop();
 }

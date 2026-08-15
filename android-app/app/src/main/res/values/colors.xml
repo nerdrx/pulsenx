@@ -1,47 +1,98 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  NX Design Language §2/§10 token mirror.
+
+  The left column is the canonical CSS custom property from nx-hub/docs/DESIGN.md;
+  these values are frozen brand and must not be restyled locally. Everything below
+  the token block is a composition of them.
+-->
 <resources>
-    <!-- ===== Brand palette (nx_bg_deep is used by the logo/launcher vectors) ===== -->
-    <color name="nx_bg_deep">#12081f</color>
 
+    <!-- ===== Brand tokens (§2 - frozen) ===== -->
+
+    <!-- bg-top / bg-bottom: deep space field, never flat black. -->
+    <color name="nx_bg_top">#0A0714</color>
+    <color name="nx_bg_bottom">#12091F</color>
+
+    <!-- panel / panel-2 -->
+    <color name="nx_panel">#171028</color>
+    <color name="nx_panel_2">#1D1433</color>
+
+    <!-- violet / violet-soft / cyan -->
     <color name="nx_accent">#7700FF</color>
-    <color name="nx_accent_soft">#9c3dff</color>
-    <color name="nx_cyan">#00e5ff</color>
-    <color name="nx_heart">#ff2d55</color>
+    <color name="nx_accent_soft">#9A3CFF</color>
+    <color name="nx_cyan">#00E5FF</color>
 
-    <color name="nx_text">#f2eaff</color>
-    <color name="nx_muted">#9b8fb5</color>
-    <color name="nx_dim">#6b5f85</color>
+    <!-- amber = update/attention only. danger = destructive/failed only. -->
+    <color name="nx_amber">#FFB300</color>
+    <color name="nx_danger">#FF5470</color>
 
-    <!-- ===== Liquid Glass base ===== -->
-    <!-- Near-black void the aurora paints on top of. -->
-    <color name="nx_void">#07060d</color>
-    <color name="nx_text_strong">#ffffff</color>
+    <!-- text / muted / line -->
+    <color name="nx_text">#EFEAFF</color>
+    <color name="nx_muted">#9A8FC0</color>
+    <color name="nx_line">#2A1F45</color>
 
-    <!-- Glass fills: translucent white over the aurora, never opaque. -->
-    <color name="glass_fill">#14ffffff</color>
-    <color name="glass_fill_inset">#3d000000</color>
+    <!--
+      Not an NX token: PulseNX's own vitals identity (SPEC "heart red"). Reserved for
+      the live BPM read-out and the decorative heart. Never used for errors - those
+      take @color/nx_danger.
+    -->
+    <color name="nx_heart">#FF2D55</color>
 
-    <!-- Hairlines & speculars. -->
-    <color name="glass_hairline">#1fffffff</color>
-    <color name="glass_hairline_soft">#26ffffff</color>
-    <color name="glass_hairline_bright">#73ffffff</color>
-    <color name="glass_hairline_fade">#0dffffff</color>
-    <color name="glass_specular_top">#1affffff</color>
-    <color name="glass_specular_none">#00ffffff</color>
-    <color name="glass_ripple">#33ffffff</color>
+    <!-- ===== Derived text steps ===== -->
 
-    <!-- Violet pill gradient. -->
-    <color name="nx_accent_grad_a">#7700FF</color>
-    <color name="nx_accent_grad_b">#9c3dff</color>
+    <!-- Titles: a hair above text, still in the violet-white family (never pure white). -->
+    <color name="nx_text_strong">#F7F3FF</color>
+    <!-- Captions/tertiary: one step under muted, kept above a comfortable contrast floor. -->
+    <color name="nx_dim">#8B80AE</color>
 
-    <!-- Switch. -->
-    <color name="nx_track_off">#29ffffff</color>
-    <color name="nx_thumb">#fff6f2ff</color>
+    <!-- Window base + the vector background of the logo tile. -->
+    <color name="nx_void">#0A0714</color>
+    <color name="nx_bg_deep">#12091F</color>
 
-    <!-- ===== Aurora background (AuroraBackgroundView reads these) ===== -->
-    <color name="aurora_base">#07060d</color>
+    <!-- ===== Liquid Glass compositions (§4 tier table) ===== -->
+
+    <!-- Tier 1 fill (glass-1): light collects top-left, drains into a cool panel shadow. -->
+    <color name="glass_fill_lit">#24FFFFFF</color>
+    <color name="glass_fill_mid">#08FFFFFF</color>
+    <color name="glass_fill_deep">#57171028</color>
+
+    <!-- Chip fill (glass-chip): secondary pills. -->
+    <color name="glass_chip_lit">#17FFFFFF</color>
+    <color name="glass_chip_deep">#07FFFFFF</color>
+
+    <!-- Wells (well / well-deep): recessed regions inside glass. -->
+    <color name="glass_well_top">#5C070410</color>
+    <color name="glass_well_bottom">#33070410</color>
+
+    <!-- Hairlines & speculars (edge / edge-top / hairline). -->
+    <color name="glass_hairline">#1FFFFFFF</color>
+    <color name="glass_hairline_soft">#26FFFFFF</color>
+    <color name="glass_hairline_bright">#52FFFFFF</color>
+    <color name="glass_hairline_fade">#0DFFFFFF</color>
+    <color name="glass_edge_shadow">#38000000</color>
+    <color name="glass_specular_top">#1AFFFFFF</color>
+    <color name="glass_specular_none">#00FFFFFF</color>
+    <color name="glass_ripple">#33FFFFFF</color>
+
+    <!--
+      Violet pill gradient: a lit highlight at the top-left, brand violet through the
+      body, a shaded end at the bottom-right. Violet leads; the other two are light.
+    -->
+    <color name="nx_accent_grad_lit">#9A3CFF</color>
+    <color name="nx_accent_grad_body">#7700FF</color>
+    <color name="nx_accent_grad_deep">#5E00C7</color>
+
+    <!-- Switch thumb. -->
+    <color name="nx_thumb">#FFF7F2FF</color>
+    <color name="nx_thumb_shade">#FFDCCFF2</color>
+
+    <!--
+      ===== Living background (§3) - AuroraBackgroundView reads these =====
+      The field itself is bg-top → bg-bottom; the view references those tokens directly.
+    -->
     <color name="aurora_blob_violet">#7700FF</color>
-    <color name="aurora_blob_cyan">#00e5ff</color>
-    <color name="aurora_blob_heart">#ff2d55</color>
-    <color name="aurora_blob_indigo">#3d1bff</color>
+    <color name="aurora_blob_cyan">#00E5FF</color>
+    <color name="aurora_blob_magenta">#B01FE0</color>
+    <color name="aurora_vignette">#8C05030C</color>
 </resources>

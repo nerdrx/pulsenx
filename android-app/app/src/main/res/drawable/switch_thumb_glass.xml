@@ -1,13 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Switch thumb: a solid light puck, iOS style. The inset pads the 24dp puck
-     to a 30dp intrinsic square, matching the track height exactly so the
-     framework never stretches either drawable to reconcile their bounds. -->
+<!-- Switch thumb: a light puck, lit top-left and shaded bottom-right like every
+     other surface. The inset pads the 24dp puck to a 30dp intrinsic square,
+     matching the track height exactly so the framework never stretches either
+     drawable to reconcile their bounds. -->
 <inset xmlns:android="http://schemas.android.com/apk/res/android"
     android:inset="3dp">
     <shape android:shape="oval">
         <size
             android:width="24dp"
             android:height="24dp" />
-        <solid android:color="@color/nx_thumb" />
+        <gradient
+            android:angle="315"
+            android:endColor="@color/nx_thumb_shade"
+            android:startColor="@color/nx_thumb"
+            android:type="linear" />
     </shape>
 </inset>

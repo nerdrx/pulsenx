@@ -39,6 +39,9 @@ function render(parsed) {
   const stats = parsed.stats || {};
   const panel = $('history-stats');
   if (panel) panel.classList.remove('hidden');
+  // The chart's empty state steps aside as soon as there is a trace to show.
+  const empty = $('history-empty');
+  if (empty) empty.classList.add('hidden');
 
   setText('hist-hr-min', isNum(stats.min) ? Math.round(stats.min) : '--');
   setText('hist-hr-avg', isNum(stats.avg) ? Math.round(stats.avg) : '--');

@@ -25,6 +25,14 @@ function initNav() {
   });
 }
 
+/* The living background (nebula blobs) is transform-only CSS, but an unseen
+   window should animate nothing at all — DESIGN.md §3. */
+function initSky() {
+  const park = () => document.body.classList.toggle('sky-parked', document.hidden);
+  document.addEventListener('visibilitychange', park);
+  park();
+}
+
 function showView(name) {
   $$('.nav-item').forEach((btn) => btn.classList.toggle('active', btn.dataset.view === name));
   $$('.view').forEach((view) => view.classList.toggle('active', view.id === `view-${name}`));
@@ -105,6 +113,7 @@ function setOverlayState(active) {
 
 async function boot() {
   initNav();
+  initSky();
   initOverlayButton();
   initDashboard();
   initHealth();

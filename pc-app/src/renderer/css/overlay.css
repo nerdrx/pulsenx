@@ -1,13 +1,32 @@
-/* PulseNX — frameless transparent overlay widget */
+/* PulseNX — the frameless transparent overlay widget.
+ *
+ * Tier 2 (DESIGN.md §4): it floats over whatever the user is looking at, so the
+ * FILL carries the legibility (blur is only the finish — a transparent Electron
+ * window has no desktop pixels to sample anyway), the edge is --edge-lit and the
+ * elevation is --shadow-sheet. Tokens are inlined because this page is loaded on
+ * its own, without theme.css.
+ */
 
 :root {
-  --beat-duration: 1s;
   --violet: #7700ff;
-  --violet-lt: #9d3bff;
+  --violet-soft: #9a3cff;
   --cyan: #00e5ff;
-  --red: #ff2d55;
-  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --mono: ui-monospace, "Cascadia Mono", "Segoe UI Mono", "DejaVu Sans Mono", Menlo, Consolas, monospace;
+  --heart: #ff2d55;
+  --text: #efeaff;
+  --muted: #9a8fc0;
+  --radius: 18px;
+  --pill: 999px;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", Cantarell, sans-serif;
+  --mono: ui-monospace, "JetBrains Mono", "Fira Code", Consolas, monospace;
+  --glass-2: linear-gradient(158deg, rgba(60, 40, 102, 0.9) 0%, rgba(30, 19, 54, 0.9) 34%,
+      rgba(15, 9, 28, 0.92) 100%);
+  --edge-lit: linear-gradient(147deg, rgba(226, 200, 255, 0.62) 0%, rgba(154, 60, 255, 0.28) 30%,
+      rgba(0, 229, 255, 0.1) 58%, rgba(0, 0, 0, 0.3) 100%);
+  --shadow-sheet: 0 48px 96px -32px rgba(0, 0, 0, 0.86), 0 0 0 1px rgba(255, 255, 255, 0.06);
+  --blur-sheet: blur(34px) saturate(185%);
+  --dur-slow: 320ms;
+  --ease-soft: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --beat-duration: 1s;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -18,6 +37,7 @@ html, body {
   background: transparent;
   overflow: hidden;
   font-family: var(--font);
+  color: var(--text);
   user-select: none;
   cursor: default;
 }
@@ -31,40 +51,47 @@ html, body {
   justify-content: center;
   gap: 3vw;
   padding: 2vh 3vw;
-  border-radius: 16px;
-  background:
-    linear-gradient(150deg, rgba(30, 15, 52, 0.86), rgba(10, 5, 18, 0.82));
-  border: 1px solid rgba(160, 110, 255, 0.35);
-  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.55), inset 0 0 40px rgba(119, 0, 255, 0.14);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  border-radius: var(--radius);
+  background: var(--glass-2);
+  backdrop-filter: var(--blur-sheet);
+  -webkit-backdrop-filter: var(--blur-sheet);
+  box-shadow: var(--shadow-sheet);
   -webkit-app-region: drag;
   cursor: move;
   overflow: hidden;
+  isolation: isolate;
 }
+/* The lit 1 px edge: brightest top-left, dark bottom-right — one light source. */
 .overlay-card::before {
   content: "";
   position: absolute;
-  inset: 0 0 auto 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--violet-lt), var(--cyan), transparent);
-  opacity: 0.8;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: var(--edge-lit);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 2;
 }
 
 .heart {
   width: clamp(26px, 34vh, 78px);
   height: clamp(26px, 34vh, 78px);
-  color: var(--red);
+  color: var(--heart);
   flex-shrink: 0;
-  filter: drop-shadow(0 0 12px rgba(255, 45, 85, 0.6));
+  filter: drop-shadow(0 0 12px rgba(255, 45, 85, 0.55));
   animation: beat var(--beat-duration) infinite ease-in-out;
   transform-origin: center;
-  transition: opacity 0.3s, filter 0.3s, color 0.3s;
+  transition: opacity var(--dur-slow) var(--ease-soft), filter var(--dur-slow) var(--ease-soft),
+    color var(--dur-slow) var(--ease-soft);
 }
 .heart.is-idle {
   animation-play-state: paused;
   opacity: 0.3;
-  color: #7c6b9c;
+  color: var(--muted);
   filter: none;
 }
 
@@ -88,23 +115,25 @@ html, body {
 }
 .metric.stress .metric-val { color: var(--cyan); text-shadow: 0 0 22px rgba(0, 229, 255, 0.45); }
 
+/* Uppercase micro-label, wide tracking — the chip language. */
 .metric-lbl {
   margin-top: 4px;
   font-size: clamp(0.5rem, 11vh, 1rem);
-  font-weight: 800;
-  letter-spacing: 0.22em;
+  font-weight: 600;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--violet-lt);
+  color: var(--muted);
 }
-.metric.stress .metric-lbl { color: rgba(0, 229, 255, 0.7); }
+.metric.stress .metric-lbl { color: rgba(0, 229, 255, 0.72); }
 
 .resize-handle {
   position: absolute;
-  right: 4px;
-  bottom: 4px;
+  right: 5px;
+  bottom: 5px;
+  z-index: 3;
   width: 12px;
   height: 12px;
-  border-right: 2px solid rgba(157, 59, 255, 0.7);
+  border-right: 2px solid rgba(154, 60, 255, 0.75);
   border-bottom: 2px solid rgba(0, 229, 255, 0.7);
   border-radius: 0 0 4px 0;
   -webkit-app-region: no-drag;
@@ -117,4 +146,12 @@ html, body {
   28%      { transform: scale(1); }
   42%      { transform: scale(1.11); }
   60%      { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition-property: opacity !important;
+    transition-duration: 120ms !important;
+  }
 }

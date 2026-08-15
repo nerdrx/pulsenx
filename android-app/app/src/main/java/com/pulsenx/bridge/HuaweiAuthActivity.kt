@@ -2,7 +2,6 @@ package com.pulsenx.bridge
 
 import android.annotation.SuppressLint
 import android.app.Activity
-import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
@@ -44,9 +43,10 @@ class HuaweiAuthActivity : Activity() {
         private const val TAG = "PulseNX/HuaweiAuth"
         const val EXTRA_ERROR = "error"
 
-        /** NX dark, one shade above the aurora void so the WebView reads as a sheet. */
-        private const val NX_SHEET = 0xFF0a0512.toInt()
     }
+
+    /** Tier-2 sheet surface (NX §4): --panel over the deep-space field. */
+    private val sheetColor by lazy { getColor(R.color.nx_panel) }
 
     private lateinit var web: WebView
     private lateinit var progress: ProgressBar
@@ -88,7 +88,7 @@ class HuaweiAuthActivity : Activity() {
             domStorageEnabled = true
             cacheMode = WebSettings.LOAD_NO_CACHE
         }
-        web.setBackgroundColor(NX_SHEET)
+        web.setBackgroundColor(sheetColor)
         web.webViewClient = client
 
         val url = HuaweiCloud.buildAuthorizeUrl(clientId, state)
@@ -198,17 +198,17 @@ class HuaweiAuthActivity : Activity() {
     private fun buildLayout(): View {
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setBackgroundColor(NX_SHEET)
+            setBackgroundColor(sheetColor)
             fitsSystemWindows = true
         }
 
         title = TextView(this).apply {
             setText(R.string.hw_auth_title)
-            setTextColor(Color.WHITE)
+            setTextColor(getColor(R.color.nx_text_strong))
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
             typeface = android.graphics.Typeface.DEFAULT_BOLD
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(20), dp(18), dp(20), dp(14))
+            setPadding(dp(16), dp(16), dp(16), dp(16))
         }
         root.addView(
             title,
@@ -217,9 +217,9 @@ class HuaweiAuthActivity : Activity() {
 
         progress = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
             isIndeterminate = true
-            indeterminateTintList = android.content.res.ColorStateList.valueOf(0xFF9c3dff.toInt())
+            indeterminateTintList = android.content.res.ColorStateList.valueOf(getColor(R.color.nx_accent_soft))
         }
-        root.addView(progress, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(3)))
+        root.addView(progress, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(4)))
 
         val frame = FrameLayout(this)
         web = WebView(this)

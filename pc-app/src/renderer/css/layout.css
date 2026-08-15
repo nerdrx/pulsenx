@@ -1,238 +1,333 @@
-/* PulseNX — app shell, header, sidebar, views, responsive grid */
+/* PulseNX — app shell: the two Bar-tier surfaces (header, sidebar), the sliding
+   nav pill, the view stack and the card grids. Everything sits on the 8 px
+   rhythm from --sp-*. */
 
 .app-shell {
   position: relative;
   z-index: 1;
   height: 100vh;
   display: grid;
-  grid-template-columns: 226px 1fr;
-  grid-template-rows: 74px 1fr;
+  grid-template-columns: 224px 1fr;
+  grid-template-rows: 72px 1fr;
   grid-template-areas:
     "header header"
     "sidebar main";
-  gap: 0;
 }
 
-/* ---------------- header ---------------- */
+/* ------------------------------------------------------------------ header */
+/* Bar tier: real backdrop-filter (1 of 2 in the whole app), --glass-bar fill,
+   a 1 px lit highlight along the top and a hairline that fades out at both
+   ends along the bottom. No solid borders anywhere. */
+
 .app-header {
+  position: relative;
   grid-area: header;
+  z-index: 30;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 18px;
-  padding: 0 20px;
-  background: linear-gradient(180deg, rgba(24, 12, 41, 0.92), rgba(14, 7, 26, 0.72));
-  border-bottom: 1px solid var(--stroke);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.45);
+  gap: var(--sp-2);
+  padding: 0 var(--sp-3);
+  background: var(--glass-bar);
+  backdrop-filter: var(--blur-bar);
+  -webkit-backdrop-filter: var(--blur-bar);
+  box-shadow: var(--shadow-bar);
+}
+.app-header::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--edge-top) 25%, rgba(255, 255, 255, 0.28) 50%,
+      var(--edge-top) 75%, transparent);
+  pointer-events: none;
+}
+.app-header::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 1px;
+  background: var(--hairline);
+  pointer-events: none;
 }
 
-.brand { display: flex; align-items: center; gap: 13px; min-width: 0; }
+.brand { display: flex; align-items: center; gap: var(--sp-2); min-width: 0; }
 
+/* The PulseNX heart stays the app's identity (DESIGN.md §8 forbids borrowing
+   the NX hexagon for an app's own mark) — it is only re-lit as glass. */
 .brand-mark {
-  width: 42px;
-  height: 42px;
+  position: relative;
+  width: 40px;
+  height: 40px;
   display: grid;
   place-items: center;
-  border-radius: 12px;
-  background: radial-gradient(circle at 30% 25%, rgba(119, 0, 255, 0.4), rgba(10, 5, 18, 0.9));
-  border: 1px solid var(--stroke-strong);
-  box-shadow: var(--glow-violet);
+  padding: 3px;
+  border-radius: 13px;
+  background: radial-gradient(120% 120% at 30% 12%, rgba(154, 60, 255, 0.5), rgba(23, 16, 40, 0.9));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 8px 20px -8px rgba(0, 0, 0, 0.8), 0 0 34px -10px rgba(119, 0, 255, 0.9);
   flex-shrink: 0;
 }
-.brand-mark.small { width: 54px; height: 54px; border-radius: 15px; }
-.brand-svg { width: 100%; height: 100%; display: block; }
+.brand-mark::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 55%;
+  border-radius: 13px 13px 0 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0));
+  pointer-events: none;
+}
+.brand-mark.small { width: 56px; height: 56px; border-radius: 17px; }
+.brand-mark.small::after { border-radius: 17px 17px 0 0; }
+.brand-svg { width: 100%; height: 100%; display: block; position: relative; z-index: 1; }
 .brand-ecg { filter: drop-shadow(0 0 4px rgba(0, 229, 255, 0.9)); }
 
 .brand-text h1 {
-  font-size: 1.32rem;
-  line-height: 1.05;
-  text-transform: none;
+  font-size: 20px;
+  font-weight: 650;
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+  color: #f6f2ff;
+  text-shadow: 0 1px 12px rgba(119, 0, 255, 0.35);
 }
 .brand-text h1 .accent {
-  background: linear-gradient(96deg, var(--violet-lt), var(--cyan));
+  background: linear-gradient(96deg, var(--violet-soft), var(--cyan));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 .brand-text p {
-  font-size: 0.68rem;
-  color: var(--txt-3);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
   margin-top: 2px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
 }
 
-.header-right { display: flex; align-items: center; gap: 12px; }
+.header-right { display: flex; align-items: center; gap: var(--sp-1); }
 
+/* A well, so the code reads as engraved into the bar rather than stuck on it. */
 .link-code-box {
   display: flex;
   flex-direction: column;
   gap: 1px;
-  padding: 6px 14px;
-  border-radius: var(--r-md);
-  background: linear-gradient(135deg, rgba(119, 0, 255, 0.22), rgba(0, 229, 255, 0.07));
-  border: 1px solid var(--stroke-strong);
-  box-shadow: inset 0 0 22px rgba(119, 0, 255, 0.14);
+  padding: 5px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--well);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
 }
 .link-code-label {
-  font-size: 0.58rem;
-  letter-spacing: 0.2em;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--txt-3);
+  color: var(--muted);
 }
 .link-code {
   font-family: var(--mono);
-  font-size: 1.16rem;
+  font-size: 17px;
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: 0.2em;
   color: var(--cyan);
-  text-shadow: 0 0 14px rgba(0, 229, 255, 0.55);
-  line-height: 1.05;
+  text-shadow: 0 0 14px rgba(0, 229, 255, 0.5);
+  line-height: 1.1;
 }
 
-/* ---------------- sidebar ---------------- */
+/* ----------------------------------------------------------------- sidebar */
+/* Bar tier (2 of 2). Its hairline right edge fades at both ends. */
+
 .app-sidebar {
+  position: relative;
   grid-area: sidebar;
+  z-index: 20;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 16px 12px 14px;
-  background: linear-gradient(180deg, rgba(20, 10, 35, 0.72), rgba(10, 5, 18, 0.5));
-  border-right: 1px solid var(--stroke);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  padding: var(--sp-2) var(--sp-2) var(--sp-2);
+  background: linear-gradient(180deg, rgba(30, 20, 52, 0.42) 0%, rgba(14, 9, 26, 0.5) 100%);
+  backdrop-filter: var(--blur-bar);
+  -webkit-backdrop-filter: var(--blur-bar);
 }
-
-.side-nav { display: flex; flex-direction: column; gap: 4px; }
-
-.nav-item {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  width: 100%;
-  padding: 11px 13px;
-  border: 1px solid transparent;
-  border-radius: var(--r-md);
-  background: transparent;
-  color: var(--txt-2);
-  font: inherit;
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-  text-align: left;
-  position: relative;
-  transition: color 0.18s, background 0.18s, border-color 0.18s, transform 0.18s;
-}
-.nav-item .ic { width: 18px; height: 18px; flex-shrink: 0; opacity: 0.85; }
-.nav-item:hover { color: var(--txt); background: rgba(119, 0, 255, 0.12); transform: translateX(2px); }
-.nav-item.active {
-  color: #fff;
-  background: linear-gradient(100deg, rgba(119, 0, 255, 0.42), rgba(119, 0, 255, 0.08));
-  border-color: var(--stroke-strong);
-  box-shadow: inset 0 0 20px rgba(119, 0, 255, 0.22), 0 6px 18px rgba(119, 0, 255, 0.18);
-}
-.nav-item.active::before {
+.app-sidebar::after {
   content: "";
   position: absolute;
-  left: -12px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 3px;
-  height: 22px;
-  border-radius: 0 3px 3px 0;
-  background: linear-gradient(180deg, var(--cyan), var(--violet));
-  box-shadow: var(--glow-cyan);
+  inset: 0 0 0 auto;
+  width: 1px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.11) 22%,
+      rgba(255, 255, 255, 0.13) 50%, rgba(255, 255, 255, 0.09) 78%, rgba(255, 255, 255, 0) 100%);
+  pointer-events: none;
 }
-.nav-item.active .ic { opacity: 1; color: var(--cyan); }
+
+/* The tab pill (§5): ONE indicator element sliding between equal-height slots,
+   never a per-item background toggle. The slot height is fixed so translateY
+   is exact, and :has() drives it — no JS, no extra DOM. */
+.side-nav {
+  position: relative;
+  display: grid;
+  grid-auto-rows: 44px;
+  padding: 4px;
+  border-radius: 26px;
+  background: var(--well);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.45), inset 0 -1px 0 rgba(255, 255, 255, 0.04),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+.side-nav::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  top: 4px;
+  height: 44px;
+  border-radius: var(--pill);
+  background: linear-gradient(180deg, #9a3cff 0%, var(--violet) 62%, #6300d6 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.42), inset 0 -8px 14px -8px rgba(0, 0, 0, 0.5),
+    0 6px 20px -6px rgba(119, 0, 255, 0.85);
+  transform: translateY(0);
+  transition: transform 420ms var(--ease-spring);
+  pointer-events: none;
+}
+.side-nav:has(.nav-item:nth-child(1).active)::before { transform: translateY(0); }
+.side-nav:has(.nav-item:nth-child(2).active)::before { transform: translateY(44px); }
+.side-nav:has(.nav-item:nth-child(3).active)::before { transform: translateY(88px); }
+.side-nav:has(.nav-item:nth-child(4).active)::before { transform: translateY(132px); }
+.side-nav:has(.nav-item:nth-child(5).active)::before { transform: translateY(176px); }
+.side-nav:has(.nav-item:nth-child(6).active)::before { transform: translateY(220px); }
+.side-nav:not(:has(.nav-item.active))::before { opacity: 0; }
+
+.nav-item {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 0 14px;
+  border: none;
+  border-radius: var(--pill);
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.005em;
+  cursor: pointer;
+  text-align: left;
+  transition: color var(--dur) var(--ease-soft);
+}
+.nav-item .ic { width: 18px; height: 18px; flex-shrink: 0; }
+.nav-item:hover { color: var(--text); }
+.nav-item.active { color: #fff; text-shadow: 0 1px 6px rgba(24, 0, 52, 0.55); }
+.nav-item.active .ic { color: #fff; }
 
 .side-foot {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  padding: 12px 8px 2px;
-  border-top: 1px solid var(--stroke);
+  gap: 2px;
+  padding-top: var(--sp-2);
 }
-.side-foot .sig {
-  font-size: 0.7rem;
-  color: var(--txt-3);
-  letter-spacing: 0.02em;
+.side-foot::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 1px;
+  background: var(--hairline);
 }
-.side-foot .ver { font-size: 0.66rem; font-family: var(--mono); color: rgba(157, 59, 255, 0.75); }
+.side-foot .sig { font-size: 11px; color: var(--muted); }
+.side-foot .ver { font-size: 11px; font-family: var(--mono); color: rgba(154, 60, 255, 0.8); }
 
-/* ---------------- main ---------------- */
+/* -------------------------------------------------------------------- main */
+
 .app-main {
   grid-area: main;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 20px 22px 34px;
+  padding: var(--sp-3) var(--sp-3) var(--sp-4);
 }
 
 .view { display: none; }
 .view.active {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  animation: fadeUp 0.28s ease both;
+  gap: var(--sp-2);
+  animation: view-in 180ms var(--ease-soft) both;
+}
+
+/* Mixed-height card collections pack as masonry (§5) rather than leaving
+   ragged holes under the short ones. */
+.view-masonry.active {
+  display: block;
+  columns: 420px;
+  column-gap: var(--sp-2);
+}
+.view-masonry.active > * {
+  break-inside: avoid;
+  display: block;
+  width: 100%;
+  margin-bottom: var(--sp-2);
 }
 
 .metrics-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.55fr) repeat(3, minmax(0, 1fr));
-  gap: 16px;
+  gap: var(--sp-2);
 }
-.hr-card { grid-column: span 1; }
 
+/* Paired cards size to their own content — a short card stretched to a tall
+   sibling's height is a hole with a border around it. */
 .split-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 16px;
+  align-items: start;
+  gap: var(--sp-2);
 }
 
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 10px;
+  gap: var(--sp-1);
 }
 
-/* Ten daily-health readouts sit as two clean rows of five. */
+/* Ten daily-health readouts pack into as many equal columns as fit, so the
+   last row never trails a lone tile beside two empty cells. */
 .health-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--sp-1);
 }
 
 .form-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 14px 16px;
+  gap: var(--sp-2);
 }
 .form-grid .span-2 { grid-column: 1 / -1; }
 
-/* ---------------- responsive ---------------- */
+/* -------------------------------------------------------------- responsive */
+
 @media (max-width: 1320px) {
-  .metrics-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  /* The live-HR card takes the full width and the three metric tiles form one
+     even row underneath it — never two tiles and a gap. */
+  .metrics-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .hr-card { grid-column: 1 / -1; }
   .stats-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .health-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
 @media (max-width: 1080px) {
-  .app-shell { grid-template-columns: 74px 1fr; }
+  .app-shell { grid-template-columns: 80px 1fr; }
+  .app-sidebar { padding: var(--sp-2) var(--sp-1); }
   .nav-item span:not(.ic) { display: none; }
-  .nav-item { justify-content: center; padding: 12px 0; }
+  .nav-item { justify-content: center; padding: 0; }
   .nav-item .ic { width: 20px; height: 20px; }
   .side-foot { align-items: center; }
   .side-foot .sig { display: none; }
   .split-grid { grid-template-columns: minmax(0, 1fr); }
-  .link-code { font-size: 1rem; letter-spacing: 0.16em; }
+  .link-code { font-size: 15px; letter-spacing: 0.14em; }
 }
 
 @media (max-width: 900px) {
   .metrics-grid { grid-template-columns: minmax(0, 1fr); }
   .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .health-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .form-grid { grid-template-columns: minmax(0, 1fr); }
-  .app-main { padding: 16px 14px 28px; }
+  .app-main { padding: var(--sp-2) var(--sp-2) var(--sp-3); }
 }

@@ -12,7 +12,7 @@
     <!-- Notification status line while the Health Connect source drives the feed -->
     <string name="health_src_waiting">Huawei Health · waiting for data</string>
     <string name="health_src_age">Huawei Health · %1$s ago</string>
-    <string name="health_src_missing">Health Connect not installed</string>
+    <string name="health_src_missing">Health Connect is not installed</string>
     <string name="health_src_update">Health Connect needs an update</string>
     <string name="health_src_permission">Health Connect access not granted</string>
     <string name="health_src_error">Health Connect read failed</string>
@@ -23,8 +23,8 @@
     <string name="health_status_permission">Tap to grant Health Connect access</string>
     <string name="health_status_waiting">Health Connect linked · reading today</string>
     <string name="health_status_ready">Health Connect linked · %1$s</string>
-    <string name="health_status_denied">Health Connect access was not granted</string>
-    <string name="health_status_all_granted">All health permissions granted ✓</string>
+    <string name="health_status_denied">Health Connect access was not granted — tap to ask again</string>
+    <string name="health_status_all_granted">All health permissions granted</string>
 
     <!-- Toasts -->
     <string name="health_toast_source">Heart rate now comes from %1$s</string>
@@ -34,29 +34,29 @@
     <string name="health_toast_unavailable">Health Connect is not available on this phone</string>
 
     <!-- Huawei Health Kit cloud link -->
-    <string name="hw_title">Huawei Cloud</string>
+    <string name="hw_title">Huawei cloud</string>
     <string name="hw_caption">Pulls steps, sleep, SpO2 and heart rate straight from Huawei\'s
         Health Kit cloud. Create a Web app on HUAWEI Developers, set the callback URL to
         https://pulsenx.auth/callback, then paste its keys here.</string>
-    <string name="hw_hint_client_id">OAuth Client ID</string>
-    <string name="hw_hint_client_secret">OAuth Client secret</string>
-    <string name="hw_action_link">Link Huawei Account</string>
+    <string name="hw_hint_client_id">OAuth client ID</string>
+    <string name="hw_hint_client_secret">OAuth client secret</string>
+    <string name="hw_action_link">Link Huawei account</string>
     <string name="hw_action_unlink">Unlink</string>
 
-    <string name="hw_status_credentials">Paste your Client ID and secret to link</string>
+    <string name="hw_status_credentials">Paste your client ID and secret to link</string>
     <string name="hw_status_not_linked">Not linked</string>
     <string name="hw_status_linked">Linked as of %1$s</string>
-    <string name="hw_status_expired">Auth expired — relink</string>
+    <string name="hw_status_expired">Sign-in expired — link again</string>
 
     <!-- Consent WebView -->
     <string name="hw_auth_title">Sign in with your Huawei ID</string>
     <string name="hw_auth_exchanging">Completing sign-in…</string>
-    <string name="hw_error_no_credentials">Enter the OAuth Client ID and secret first</string>
-    <string name="hw_error_denied">Huawei sign-in was cancelled</string>
-    <string name="hw_error_generic">Huawei sign-in failed: %1$s</string>
-    <string name="hw_error_state">Sign-in rejected: the callback did not match this request</string>
-    <string name="hw_error_no_code">Huawei returned no authorization code</string>
-    <string name="hw_toast_linked">Huawei cloud linked ✓</string>
+    <string name="hw_error_no_credentials">Enter the OAuth client ID and secret first</string>
+    <string name="hw_error_denied">Huawei sign-in was cancelled — start the link again to retry</string>
+    <string name="hw_error_generic">Huawei sign-in failed: %1$s — check your connection and try again</string>
+    <string name="hw_error_state">Sign-in rejected: the callback did not match this request — start the link again</string>
+    <string name="hw_error_no_code">Huawei returned no authorization code — start the link again</string>
+    <string name="hw_toast_linked">Huawei cloud linked</string>
     <string name="hw_toast_unlinked">Huawei cloud unlinked</string>
 
     <!-- Health card values -->
