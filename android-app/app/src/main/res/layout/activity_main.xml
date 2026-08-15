@@ -1,240 +1,544 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<!--
+  PulseNX Bridge - "Liquid Glass" single screen.
+
+  Structure: an edge-to-edge aurora canvas, with a scrolling column of translucent
+  glass cards floating on top. Every id referenced by MainActivity is frozen by
+  CONTRACT §3; status TextViews deliberately carry no android:textColor because
+  the logic layer tints them (ok / warn / bad).
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@color/nx_bg"
-    android:fillViewport="true"
-    android:scrollbars="none">
+    android:layout_height="match_parent">
 
-    <LinearLayout
+    <!-- No background here on purpose: the theme's windowBackground is already
+         @color/nx_void and the aurora repaints the base every frame (avoids overdraw). -->
+    <com.pulsenx.bridge.ui.AuroraBackgroundView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:paddingStart="22dp"
-        android:paddingEnd="22dp"
-        android:paddingTop="28dp"
-        android:paddingBottom="32dp">
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no" />
 
-        <!-- ===== Brand header ===== -->
-        <ImageView
-            android:id="@+id/ivLogo"
-            android:layout_width="84dp"
-            android:layout_height="84dp"
-            android:layout_gravity="center_horizontal"
-            android:contentDescription="@string/app_name"
-            android:src="@drawable/logo_pulsenx" />
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipToPadding="true"
+        android:fillViewport="true"
+        android:fitsSystemWindows="true"
+        android:overScrollMode="ifContentScrolls"
+        android:scrollbars="none">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginTop="12dp"
-            android:letterSpacing="0.06"
-            android:text="@string/app_name"
-            android:textColor="@color/nx_text"
-            android:textSize="24sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginTop="2dp"
-            android:letterSpacing="0.12"
-            android:text="@string/app_subtitle"
-            android:textColor="@color/nx_accent_soft"
-            android:textSize="11sp" />
-
-        <!-- ===== Live BPM ===== -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="26dp"
-            android:background="@drawable/card_bg"
             android:orientation="vertical"
-            android:paddingStart="22dp"
-            android:paddingEnd="22dp"
-            android:paddingTop="18dp"
-            android:paddingBottom="22dp">
+            android:paddingStart="20dp"
+            android:paddingTop="20dp"
+            android:paddingEnd="20dp"
+            android:paddingBottom="36dp">
+
+            <!-- ===================== Large-title header ===================== -->
+
+            <ImageView
+                android:id="@+id/ivLogo"
+                android:layout_width="46dp"
+                android:layout_height="46dp"
+                android:layout_marginBottom="14dp"
+                android:contentDescription="@string/app_name"
+                android:src="@drawable/logo_pulsenx" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:letterSpacing="0.14"
-                android:text="@string/label_live_hr"
-                android:textColor="@color/nx_dim"
-                android:textSize="10sp"
-                android:textStyle="bold" />
+                android:text="@string/title_large"
+                style="@style/NxText.LargeTitle" />
 
             <TextView
-                android:id="@+id/tvBpm"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_gravity="center_horizontal"
                 android:layout_marginTop="6dp"
-                android:text="--"
-                android:textColor="@color/nx_muted"
-                android:textSize="88sp"
-                android:textStyle="bold" />
+                android:text="@string/header_subtitle"
+                style="@style/NxText.HeaderSubtitle" />
+
+            <!-- ===================== Card 1: PC link ===================== -->
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                style="@style/NxCard">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/card_pc_title"
+                    style="@style/NxText.CardTitle" />
+
+                <EditText
+                    android:id="@+id/etTarget"
+                    android:layout_width="match_parent"
+                    android:layout_height="54dp"
+                    android:layout_marginTop="16dp"
+                    android:background="@drawable/field_glass"
+                    android:hint="@string/hint_target"
+                    android:imeOptions="actionDone"
+                    android:importantForAutofill="no"
+                    android:inputType="textCapCharacters|textNoSuggestions"
+                    android:maxLines="1"
+                    android:paddingStart="18dp"
+                    android:paddingEnd="18dp"
+                    android:textColor="@color/nx_text"
+                    android:textColorHint="@color/nx_dim"
+                    android:textCursorDrawable="@null"
+                    android:textSize="15sp" />
+
+                <Button
+                    android:id="@+id/btnLinkPc"
+                    android:layout_width="match_parent"
+                    android:layout_height="54dp"
+                    android:layout_marginTop="12dp"
+                    android:text="@string/action_link_pc"
+                    style="@style/NxPill.Primary" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:text="@string/hint_helper"
+                    style="@style/NxText.Caption" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginTop="16dp"
+                    android:layout_marginBottom="14dp"
+                    android:background="@drawable/hairline_divider" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:baselineAligned="false"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/label_pc"
+                        style="@style/NxText.RowLabel" />
+
+                    <TextView
+                        android:id="@+id/tvStatusPc"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:gravity="end"
+                        android:text="@string/status_pc_offline"
+                        style="@style/NxText.StatusValue" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- ===================== Card 2: heart-rate source ===================== -->
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                style="@style/NxCard">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/card_source_title"
+                    style="@style/NxText.CardTitle" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:background="@drawable/segmented_track"
+                    android:baselineAligned="false"
+                    android:orientation="horizontal"
+                    android:padding="4dp">
+
+                    <TextView
+                        android:id="@+id/segSourceBle"
+                        android:layout_width="0dp"
+                        android:layout_height="44dp"
+                        android:layout_weight="1"
+                        android:text="@string/seg_source_watch"
+                        style="@style/NxSegment" />
+
+                    <TextView
+                        android:id="@+id/segSourceHealth"
+                        android:layout_width="0dp"
+                        android:layout_height="44dp"
+                        android:layout_marginStart="4dp"
+                        android:layout_weight="1"
+                        android:text="@string/seg_source_health"
+                        style="@style/NxSegment" />
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:text="@string/card_source_caption"
+                    style="@style/NxText.Caption" />
+
+                <!-- Hidden wholesale by the logic layer when the source is Health Connect. -->
+                <LinearLayout
+                    android:id="@+id/groupWatch"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginTop="16dp"
+                        android:layout_marginBottom="16dp"
+                        android:background="@drawable/hairline_divider" />
+
+                    <Button
+                        android:id="@+id/btnScanWatch"
+                        android:layout_width="match_parent"
+                        android:layout_height="54dp"
+                        android:text="@string/action_scan_watch"
+                        style="@style/NxPill.Secondary" />
+
+                    <ProgressBar
+                        android:id="@+id/progressScan"
+                        style="?android:attr/progressBarStyleHorizontal"
+                        android:layout_width="match_parent"
+                        android:layout_height="4dp"
+                        android:layout_marginTop="14dp"
+                        android:background="@drawable/progress_track_glass"
+                        android:indeterminate="true"
+                        android:indeterminateTint="@color/nx_accent_soft"
+                        android:maxHeight="4dp"
+                        android:minHeight="4dp"
+                        android:visibility="gone" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:baselineAligned="false"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/label_watch"
+                            style="@style/NxText.RowLabel" />
+
+                        <TextView
+                            android:id="@+id/tvStatusWatch"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:gravity="end"
+                            android:text="@string/status_watch_offline"
+                            style="@style/NxText.StatusValue" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:text="@string/hint_unpair"
+                        style="@style/NxText.Caption" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- ===================== Card 3: live BPM ===================== -->
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:background="@drawable/glass_card"
+                android:padding="20dp">
+
+                <ImageView
+                    android:layout_width="86dp"
+                    android:layout_height="86dp"
+                    android:layout_gravity="top|end"
+                    android:alpha="0.22"
+                    android:contentDescription="@string/cd_heart_accent"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/heart_accent" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/label_live_hr"
+                        style="@style/NxText.Eyebrow" />
+
+                    <TextView
+                        android:id="@+id/tvBpm"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginTop="10dp"
+                        android:fontFamily="sans-serif"
+                        android:includeFontPadding="false"
+                        android:letterSpacing="-0.05"
+                        android:text="@string/placeholder_value"
+                        android:textColor="@color/nx_muted"
+                        android:textSize="96sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginTop="6dp"
+                        android:letterSpacing="0.24"
+                        android:text="@string/label_bpm"
+                        android:textColor="@color/nx_heart"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </FrameLayout>
+
+            <!-- ===================== Card 4: health ===================== -->
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                style="@style/NxCard">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/card_health_title"
+                    style="@style/NxText.CardTitle" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/card_health_caption"
+                    style="@style/NxText.Caption" />
+
+                <Button
+                    android:id="@+id/btnHcPermissions"
+                    android:layout_width="match_parent"
+                    android:layout_height="54dp"
+                    android:layout_marginTop="16dp"
+                    android:text="@string/action_health_permissions"
+                    style="@style/NxPill.Secondary" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginTop="18dp"
+                    android:background="@drawable/hairline_divider" />
+
+                <!-- Write HR into Health Connect -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:baselineAligned="false"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/label_hc_write"
+                            style="@style/NxText.RowLabel" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="@string/desc_hc_write"
+                            style="@style/NxText.RowDesc" />
+                    </LinearLayout>
+
+                    <Switch
+                        android:id="@+id/switchHcWrite"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="14dp"
+                        style="@style/NxSwitch" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginTop="16dp"
+                    android:background="@drawable/hairline_divider" />
+
+                <!-- Mirror Huawei records under the PulseNX origin -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:baselineAligned="false"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/label_fit_mirror"
+                            style="@style/NxText.RowLabel" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="@string/desc_fit_mirror"
+                            style="@style/NxText.RowDesc" />
+                    </LinearLayout>
+
+                    <Switch
+                        android:id="@+id/switchFitMirror"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="14dp"
+                        style="@style/NxSwitch" />
+                </LinearLayout>
+
+                <!-- Mini stats -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="18dp"
+                    android:baselineAligned="false"
+                    android:orientation="horizontal">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        android:layout_weight="1"
+                        style="@style/NxTile">
+
+                        <TextView
+                            android:id="@+id/tvHealthSteps"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/placeholder_value"
+                            style="@style/NxText.TileValue" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:text="@string/tile_steps"
+                            style="@style/NxText.TileCaption" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        android:layout_weight="1"
+                        style="@style/NxTile">
+
+                        <TextView
+                            android:id="@+id/tvHealthKcal"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/placeholder_value"
+                            style="@style/NxText.TileValue" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:text="@string/tile_kcal"
+                            style="@style/NxText.TileCaption" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        android:layout_weight="1"
+                        style="@style/NxTile">
+
+                        <TextView
+                            android:id="@+id/tvHealthSleep"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/placeholder_value"
+                            style="@style/NxText.TileValue" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:text="@string/tile_sleep"
+                            style="@style/NxText.TileCaption" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        style="@style/NxTile">
+
+                        <TextView
+                            android:id="@+id/tvHealthRhr"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/placeholder_value"
+                            style="@style/NxText.TileValue" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:text="@string/tile_rhr"
+                            style="@style/NxText.TileCaption" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/tvHealthStatus"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:text="@string/status_health_idle"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <!-- ===================== Signature ===================== -->
 
             <TextView
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_gravity="center_horizontal"
-                android:letterSpacing="0.22"
-                android:text="@string/label_bpm"
-                android:textColor="@color/nx_heart"
-                android:textSize="13sp"
-                android:textStyle="bold" />
+                android:layout_marginTop="26dp"
+                android:gravity="center_horizontal"
+                android:text="@string/footer_signature"
+                style="@style/NxText.Footer" />
         </LinearLayout>
-
-        <!-- ===== Status ===== -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:background="@drawable/card_bg"
-            android:orientation="vertical"
-            android:padding="20dp">
-
-            <RelativeLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_alignParentStart="true"
-                    android:text="@string/label_pc"
-                    android:textColor="@color/nx_muted"
-                    android:textSize="13sp" />
-
-                <TextView
-                    android:id="@+id/tvStatusPc"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_alignParentEnd="true"
-                    android:text="@string/status_pc_offline"
-                    android:textColor="@color/nx_heart"
-                    android:textSize="13sp"
-                    android:textStyle="bold" />
-            </RelativeLayout>
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginTop="12dp"
-                android:layout_marginBottom="12dp"
-                android:background="@color/nx_card_edge" />
-
-            <RelativeLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_alignParentStart="true"
-                    android:text="@string/label_watch"
-                    android:textColor="@color/nx_muted"
-                    android:textSize="13sp" />
-
-                <TextView
-                    android:id="@+id/tvStatusWatch"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_alignParentEnd="true"
-                    android:text="@string/status_watch_offline"
-                    android:textColor="@color/nx_heart"
-                    android:textSize="13sp"
-                    android:textStyle="bold" />
-            </RelativeLayout>
-        </LinearLayout>
-
-        <!-- ===== Link controls ===== -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="26dp"
-            android:letterSpacing="0.14"
-            android:text="@string/label_link"
-            android:textColor="@color/nx_cyan"
-            android:textSize="11sp"
-            android:textStyle="bold" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:baselineAligned="false"
-            android:orientation="horizontal">
-
-            <EditText
-                android:id="@+id/etTarget"
-                android:layout_width="0dp"
-                android:layout_height="52dp"
-                android:layout_weight="1"
-                android:background="@drawable/edit_text_bg"
-                android:hint="@string/hint_target"
-                android:imeOptions="actionDone"
-                android:inputType="textCapCharacters|textNoSuggestions"
-                android:maxLines="1"
-                android:paddingStart="14dp"
-                android:paddingEnd="14dp"
-                android:textColor="@color/nx_text"
-                android:textColorHint="@color/nx_dim"
-                android:textSize="15sp" />
-
-            <Button
-                android:id="@+id/btnLinkPc"
-                android:layout_width="wrap_content"
-                android:layout_height="52dp"
-                android:layout_marginStart="10dp"
-                android:background="@drawable/button_accent_bg"
-                android:minWidth="116dp"
-                android:text="@string/action_link_pc"
-                android:textAllCaps="false"
-                android:textColor="#ffffff"
-                android:textSize="14sp"
-                android:textStyle="bold" />
-        </LinearLayout>
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/hint_helper"
-            android:textColor="@color/nx_dim"
-            android:textSize="11sp" />
-
-        <Button
-            android:id="@+id/btnScanWatch"
-            android:layout_width="match_parent"
-            android:layout_height="52dp"
-            android:layout_marginTop="18dp"
-            android:background="@drawable/button_outline_bg"
-            android:text="@string/action_scan_watch"
-            android:textAllCaps="false"
-            android:textColor="@color/nx_cyan"
-            android:textSize="14sp"
-            android:textStyle="bold" />
-
-        <ProgressBar
-            android:id="@+id/progressScan"
-            android:layout_width="26dp"
-            android:layout_height="26dp"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginTop="16dp"
-            android:indeterminateTint="@color/nx_accent"
-            android:visibility="gone" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="18dp"
-            android:gravity="center_horizontal"
-            android:text="@string/hint_unpair"
-            android:textColor="@color/nx_dim"
-            android:textSize="11sp" />
-    </LinearLayout>
-</ScrollView>
+    </ScrollView>
+</FrameLayout>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- API 29+: stop the platform painting a contrast scrim over our transparent bars. -->
+    <style name="Theme.PulseNXBridge" parent="Base.Theme.PulseNXBridge">
+        <item name="android:enforceStatusBarContrast">false</item>
+        <item name="android:enforceNavigationBarContrast">false</item>
+    </style>
+</resources>
