@@ -14,8 +14,9 @@
   --heart: #ff2d55;
   --text: #efeaff;
   --muted: #9a8fc0;
-  --radius: 18px;
-  --pill: 999px;
+  --radius: 6px;
+  --radius-sm: 4px;
+  --pill: 5px;
   --font: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", Cantarell, sans-serif;
   --mono: ui-monospace, "JetBrains Mono", "Fira Code", Consolas, monospace;
   --glass-2: linear-gradient(158deg, rgba(60, 40, 102, 0.9) 0%, rgba(30, 19, 54, 0.9) 34%,
@@ -135,7 +136,7 @@ html, body {
   height: 12px;
   border-right: 2px solid rgba(154, 60, 255, 0.75);
   border-bottom: 2px solid rgba(0, 229, 255, 0.7);
-  border-radius: 0 0 4px 0;
+  border-radius: 0 0 var(--radius-sm) 0;
   -webkit-app-region: no-drag;
   cursor: nwse-resize;
 }

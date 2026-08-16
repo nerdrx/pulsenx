@@ -58,7 +58,8 @@ function widgetHtml(wsPort) {
     align-items: center;
     gap: 16px;
     padding: 16px 24px;
-    border-radius: 18px;
+    /* --radius: angular, never rounded (DESIGN.md §2/§11). */
+    border-radius: 6px;
     /* Light collects top-left and drains to a cool shadow. */
     background: linear-gradient(158deg, rgba(60, 40, 102, 0.9) 0%, rgba(30, 19, 54, 0.9) 34%,
         rgba(13, 8, 25, 0.92) 100%);

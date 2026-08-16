@@ -22,8 +22,8 @@ android {
         // reject the install otherwise. Android gates upgrades on versionCode,
         // not versionName, so walking the name back to match the suite version
         // (pc-app/package.json) is safe.
-        versionCode 9
-        versionName "1.2.1"
+        versionCode 10
+        versionName "1.2.2"
     }
 
     signingConfigs {

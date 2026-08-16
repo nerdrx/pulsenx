@@ -1,6 +1,10 @@
 /* PulseNX — components, all composed from the tokens in theme.css:
-   tier-1 cards (faked glass), wells, pill buttons, chips, luminous progress
-   troughs, well-recessed inputs and the breathing pacer. */
+   tier-1 cards (faked glass), wells, sharp-cut glass buttons, chips, luminous
+   progress troughs, well-recessed inputs and the breathing pacer.
+   Every radius here comes from a token and lands in the 3–6 px band (§11);
+   perfect circles exist only where the spec allows them — status dots, the
+   recording dot, and the breathing pacer, which is a domain visualisation of a
+   breath rather than a piece of chrome. */
 
 /* ==================================================================== cards */
 /* Tier 1 — FAKED glass. No backdrop-filter: a dashboard shows a dozen of these
@@ -86,8 +90,9 @@
 }
 
 /* ================================================================== buttons */
-/* Glass pills. Primary: violet fill, inner top highlight, soft violet glow;
-   hover lifts 1 px and blooms; press scales to 0.96. */
+/* Sharp-cut glass blocks (--pill is a 5 px chamfer, not a pill). Primary:
+   violet fill, inner top highlight, soft violet glow; hover lifts 1 px and
+   blooms; press scales to 0.96. */
 
 .btn {
   position: relative;
@@ -187,7 +192,8 @@
 
 /* ============================================================ status chips */
 /* Uppercase micro-labels: cyan = live, amber = pending attention, muted =
-   inert (§5). */
+   inert (§5). ".status-pill" is a legacy class name kept for the id/e2e
+   contract — the shape is a sharp-cut block, and only its dot is round. */
 
 .status-pill {
   display: flex;
@@ -206,6 +212,7 @@
   transition: color var(--dur) var(--ease-soft), border-color var(--dur) var(--ease-soft),
     box-shadow var(--dur) var(--ease-soft);
 }
+/* Round by permission (§11): a live status dot, with a ping ring behind it. */
 .status-dot {
   position: relative;
   width: 8px;
@@ -246,7 +253,7 @@
   font-weight: 600;
   letter-spacing: 0.06em;
   padding: 2px 8px;
-  border-radius: var(--pill);
+  border-radius: var(--radius-xs);
   border: 1px solid rgba(255, 255, 255, 0.09);
   background: var(--glass-chip);
   color: var(--muted);
@@ -388,7 +395,7 @@
 .meter { margin-top: auto; padding-top: var(--sp-2); }
 .meter-track {
   height: 8px;
-  border-radius: var(--pill);
+  border-radius: var(--radius-xs);
   background: var(--well-deep);
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
   overflow: hidden;
@@ -397,7 +404,7 @@
   position: relative;
   height: 100%;
   width: 0%;
-  border-radius: var(--pill);
+  border-radius: var(--radius-xs);
   overflow: hidden;
   background: linear-gradient(90deg, var(--violet) 0%, #a24bff 45%, var(--cyan) 100%);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 0 14px rgba(0, 229, 255, 0.5);
@@ -433,7 +440,7 @@
   text-transform: uppercase;
   color: var(--muted);
   padding: 4px 11px;
-  border-radius: var(--pill);
+  border-radius: var(--radius-xs);
   border: 1px solid rgba(255, 255, 255, 0.09);
   background: var(--glass-chip);
 }
@@ -519,19 +526,22 @@
   color: var(--muted);
 }
 .chart-legend.inline { margin-top: 0; }
-.dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+/* Legend markers are cut swatches, not dots — the only round markers in the app
+   are live status dots and the recording indicator. */
+.dot { width: 8px; height: 8px; border-radius: var(--radius-xs); display: inline-block; margin-right: 6px; }
 .dot-hr { background: var(--heart); box-shadow: 0 0 8px var(--heart-glow); }
 .dot-stress { background: var(--cyan); box-shadow: 0 0 8px rgba(0, 229, 255, 0.7); }
 .dot-violet { background: var(--violet-soft); box-shadow: 0 0 8px rgba(154, 60, 255, 0.8); }
 
-/* The series switch is the tab pill again: one indicator, three equal slots. */
+/* The series switch is the tab indicator again: one sliding block, three equal
+   slots. */
 .seg-group {
   position: relative;
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
   padding: 3px;
-  border-radius: var(--pill);
+  border-radius: var(--radius-sm);
   background: var(--well);
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
 }
@@ -576,7 +586,7 @@
 .zone-track {
   display: flex;
   height: 20px;
-  border-radius: var(--pill);
+  border-radius: var(--radius-sm);
   overflow: hidden;
   background: var(--well-deep);
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.6), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
@@ -604,7 +614,7 @@
 }
 .zl { display: flex; align-items: center; gap: 6px; }
 .zl strong { font-family: var(--mono); color: var(--text); font-weight: 600; }
-.sw { width: 8px; height: 8px; border-radius: 3px; display: inline-block; }
+.sw { width: 8px; height: 8px; border-radius: var(--radius-xs); display: inline-block; }
 .sw-warmup { background: var(--zone-warmup); box-shadow: 0 0 8px rgba(0, 229, 255, 0.6); }
 .sw-fatburn { background: var(--zone-fatburn); box-shadow: 0 0 8px rgba(154, 60, 255, 0.6); }
 .sw-aerobic { background: var(--zone-aerobic); box-shadow: 0 0 8px rgba(199, 75, 255, 0.6); }
@@ -623,6 +633,7 @@
   background: var(--well);
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
 }
+/* A status dot — one of the few round shapes the spec still allows (§11). */
 .rec-dot {
   width: 10px;
   height: 10px;
@@ -715,18 +726,19 @@ select option { background: #1a1130; color: var(--text); }
   appearance: none;
   width: 100%;
   height: 8px;
-  border-radius: var(--pill);
+  border-radius: var(--radius-xs);
   background: linear-gradient(90deg, rgba(0, 229, 255, 0.3), rgba(119, 0, 255, 0.55));
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.55);
   outline: none;
   cursor: pointer;
 }
+/* A cut puck, not a knob — the handle echoes the crystal's facets. */
 .slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 18px;
+  width: 16px;
   height: 18px;
-  border-radius: 50%;
+  border-radius: var(--radius-sm);
   background: linear-gradient(180deg, #fff 0%, var(--violet-soft) 100%);
   border: 2px solid var(--violet);
   box-shadow: 0 0 18px -2px rgba(119, 0, 255, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.6);
@@ -735,7 +747,8 @@ select option { background: #1a1130; color: var(--text); }
 }
 .slider::-webkit-slider-thumb:active { transform: scale(1.12); cursor: grabbing; }
 
-/* switches */
+/* switches — a cut track holding a square puck; the old round pill switch was
+   the last true pill in the app. */
 .switch { position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0; }
 .switch input { position: absolute; opacity: 0; width: 0; height: 0; }
 .switch .track {
@@ -756,7 +769,7 @@ select option { background: #1a1130; color: var(--text); }
   left: 3px;
   width: 16px;
   height: 16px;
-  border-radius: 50%;
+  border-radius: var(--radius-sm);
   background: var(--muted);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
   transition: transform var(--dur) var(--ease-spring), background var(--dur) var(--ease-soft);
@@ -812,6 +825,10 @@ select option { background: #1a1130; color: var(--text); }
 .info-val.err { color: var(--danger); }
 
 /* ========================================================= breathing pacer */
+/* The one deliberate exception to "angular, never rounded": the pacer is not
+   chrome, it is a visualisation of a breath — the user paces their lungs to a
+   ring that grows and shrinks. Cutting its corners would turn a physiological
+   guide into a widget. Everything around it (card, meter, labels) stays cut. */
 
 .pacer-card { align-items: stretch; }
 /* Bottom-aligned meters keep their auto margin against the sibling rhythm. */

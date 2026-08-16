@@ -6,14 +6,14 @@
   edge and a shadowed bottom-right one. The gloss lives in the body gradient rather
   than in a clipped band, which would leave a seam where the band ends.
 
-  Radius = radius (18dp).
+  Radius = radius (6dp, NX v1.2 - angular, never rounded).
 -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!-- Body: glass-1, 315° = top-left → bottom-right, matching the global light. -->
     <item>
         <shape android:shape="rectangle">
-            <corners android:radius="18dp" />
+            <corners android:radius="6dp" />
             <gradient
                 android:angle="315"
                 android:centerColor="@color/glass_fill_mid"
@@ -30,8 +30,8 @@
     <item
         android:gravity="top|fill_horizontal"
         android:height="1dp"
-        android:left="18dp"
-        android:right="18dp">
+        android:left="6dp"
+        android:right="6dp">
         <shape android:shape="rectangle">
             <gradient
                 android:angle="0"
@@ -45,8 +45,8 @@
     <item
         android:gravity="bottom|fill_horizontal"
         android:height="1dp"
-        android:left="18dp"
-        android:right="18dp">
+        android:left="6dp"
+        android:right="6dp">
         <shape android:shape="rectangle">
             <gradient
                 android:angle="0"

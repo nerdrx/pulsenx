@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   One segment of the source selector. Logic only flips isSelected;
-  android:state_selected drives the violet pill highlight, lit from the upper-left
-  exactly like pill_primary.
+  android:state_selected drives the sharp-cut violet highlight (5dp), lit from the
+  upper-left exactly like pill_primary.
 -->
 <ripple xmlns:android="http://schemas.android.com/apk/res/android"
     android:color="@color/glass_ripple">
@@ -13,7 +13,7 @@
                 <layer-list>
                     <item>
                         <shape android:shape="rectangle">
-                            <corners android:radius="100dp" />
+                            <corners android:radius="5dp" />
                             <gradient
                                 android:angle="315"
                                 android:centerColor="@color/nx_accent_grad_body"
@@ -28,8 +28,8 @@
                     <item
                         android:gravity="top|fill_horizontal"
                         android:height="1dp"
-                        android:left="22dp"
-                        android:right="22dp">
+                        android:left="5dp"
+                        android:right="5dp">
                         <shape android:shape="rectangle">
                             <gradient
                                 android:angle="0"
@@ -41,8 +41,8 @@
                     <item
                         android:gravity="bottom|fill_horizontal"
                         android:height="1dp"
-                        android:left="22dp"
-                        android:right="22dp">
+                        android:left="5dp"
+                        android:right="5dp">
                         <shape android:shape="rectangle">
                             <gradient
                                 android:angle="0"
@@ -56,7 +56,7 @@
 
             <item>
                 <shape android:shape="rectangle">
-                    <corners android:radius="100dp" />
+                    <corners android:radius="5dp" />
                     <solid android:color="@android:color/transparent" />
                 </shape>
             </item>
@@ -65,7 +65,7 @@
 
     <item android:id="@android:id/mask">
         <shape android:shape="rectangle">
-            <corners android:radius="100dp" />
+            <corners android:radius="5dp" />
             <solid android:color="#FFFFFFFF" />
         </shape>
     </item>

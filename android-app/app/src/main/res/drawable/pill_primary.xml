@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Primary action pill (NX §5): violet fill, lit top edge, ripple clipped to the
-  pill. The fill runs lit violet at the top-left → brand violet at the bottom-right,
-  so it sits under the same light as every card on the screen.
+  Primary action button (NX §5): a sharp-cut violet block - 5dp chamfer, never a
+  pill - with a lit top edge and the ripple clipped to the same cut. The fill runs
+  lit violet at the top-left → brand violet at the bottom-right, so it sits under
+  the same light as every card on the screen.
 -->
 <ripple xmlns:android="http://schemas.android.com/apk/res/android"
     android:color="@color/glass_ripple">
@@ -11,7 +12,7 @@
         <layer-list>
             <item>
                 <shape android:shape="rectangle">
-                    <corners android:radius="100dp" />
+                    <corners android:radius="5dp" />
                     <gradient
                         android:angle="315"
                         android:centerColor="@color/nx_accent_grad_body"
@@ -27,8 +28,8 @@
             <item
                 android:gravity="top|fill_horizontal"
                 android:height="1dp"
-                android:left="28dp"
-                android:right="28dp">
+                android:left="5dp"
+                android:right="5dp">
                 <shape android:shape="rectangle">
                     <gradient
                         android:angle="0"
@@ -41,8 +42,8 @@
             <item
                 android:gravity="bottom|fill_horizontal"
                 android:height="1dp"
-                android:left="28dp"
-                android:right="28dp">
+                android:left="5dp"
+                android:right="5dp">
                 <shape android:shape="rectangle">
                     <gradient
                         android:angle="0"
@@ -56,7 +57,7 @@
 
     <item android:id="@android:id/mask">
         <shape android:shape="rectangle">
-            <corners android:radius="100dp" />
+            <corners android:radius="5dp" />
             <solid android:color="#FFFFFFFF" />
         </shape>
     </item>

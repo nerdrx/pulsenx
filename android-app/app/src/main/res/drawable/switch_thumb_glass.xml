@@ -1,14 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Switch thumb: a light puck, lit top-left and shaded bottom-right like every
-     other surface. The inset pads the 24dp puck to a 30dp intrinsic square,
-     matching the track height exactly so the framework never stretches either
-     drawable to reconcile their bounds. -->
+     other surface. Angular per NX §2 - a 4dp-radius square, not a circle; perfect
+     circles are reserved for status dots and spinners. The inset pads the 24dp puck
+     to a 30dp intrinsic square, matching the track height exactly so the framework
+     never stretches either drawable to reconcile their bounds (NX §10). -->
 <inset xmlns:android="http://schemas.android.com/apk/res/android"
     android:inset="3dp">
-    <shape android:shape="oval">
+    <shape android:shape="rectangle">
         <size
             android:width="24dp"
             android:height="24dp" />
+        <corners android:radius="4dp" />
         <gradient
             android:angle="315"
             android:endColor="@color/nx_thumb_shade"

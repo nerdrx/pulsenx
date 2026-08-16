@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Secondary action (NX §5): glass-chip fill with a lit edge, no violet. -->
+<!-- Secondary action (NX §5): glass-chip fill with a lit edge, no violet.
+     Same 5dp chamfer as the primary. -->
 <ripple xmlns:android="http://schemas.android.com/apk/res/android"
     android:color="@color/glass_ripple">
 
@@ -7,7 +8,7 @@
         <layer-list>
             <item>
                 <shape android:shape="rectangle">
-                    <corners android:radius="100dp" />
+                    <corners android:radius="5dp" />
                     <gradient
                         android:angle="315"
                         android:endColor="@color/glass_chip_deep"
@@ -22,8 +23,8 @@
             <item
                 android:gravity="top|fill_horizontal"
                 android:height="1dp"
-                android:left="28dp"
-                android:right="28dp">
+                android:left="5dp"
+                android:right="5dp">
                 <shape android:shape="rectangle">
                     <gradient
                         android:angle="0"
@@ -36,8 +37,8 @@
             <item
                 android:gravity="bottom|fill_horizontal"
                 android:height="1dp"
-                android:left="28dp"
-                android:right="28dp">
+                android:left="5dp"
+                android:right="5dp">
                 <shape android:shape="rectangle">
                     <gradient
                         android:angle="0"
@@ -51,7 +52,7 @@
 
     <item android:id="@android:id/mask">
         <shape android:shape="rectangle">
-            <corners android:radius="100dp" />
+            <corners android:radius="5dp" />
             <solid android:color="#FFFFFFFF" />
         </shape>
     </item>

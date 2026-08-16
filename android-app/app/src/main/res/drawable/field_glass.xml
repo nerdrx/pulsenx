@@ -3,13 +3,13 @@
   Input well (NX §5): a recess pressed into the card, not a second sheet of glass.
   The fill darkens toward the top-left rim - the side the light comes from - so it
   reads as depth rather than as a tinted panel. line border, violet on focus.
-  Radius = radius-sm (12dp).
+  Radius = radius-sm (4dp).
 -->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
 
     <item android:state_focused="true">
         <shape android:shape="rectangle">
-            <corners android:radius="12dp" />
+            <corners android:radius="4dp" />
             <gradient
                 android:angle="315"
                 android:endColor="@color/glass_well_bottom"
@@ -23,7 +23,7 @@
 
     <item>
         <shape android:shape="rectangle">
-            <corners android:radius="12dp" />
+            <corners android:radius="4dp" />
             <gradient
                 android:angle="315"
                 android:endColor="@color/glass_well_bottom"

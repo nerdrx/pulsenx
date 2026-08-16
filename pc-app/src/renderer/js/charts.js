@@ -28,7 +28,7 @@ function tooltipStyle() {
     borderColor: 'rgba(154,60,255,0.45)',
     borderWidth: 1,
     padding: 10,
-    cornerRadius: 12,
+    cornerRadius: 6,  /* --radius: canvas cannot read the token, so it is mirrored */
     titleColor: '#efeaff',
     bodyColor: '#efeaff',
     titleFont: { family: FONT, size: 11, weight: '600' },
