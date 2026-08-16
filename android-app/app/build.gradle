@@ -23,7 +23,7 @@ android {
         // not versionName, so walking the name back to match the suite version
         // (pc-app/package.json) is safe.
         versionCode 10
-        versionName "1.2.2"
+        versionName "1.2.3"
     }
 
     signingConfigs {
